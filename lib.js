@@ -26,7 +26,7 @@ const clearBooks = () => {
 // Útil para resetar o sistema com dados de exemplo
 const resetBooks = () => {
 const books = [
-  { id: 1, title: "Bohemian Rhapsody", author: "Queen", year: 1975, genre: "Rock", imagem: imagens/BohemianRhapsody.jpg },
+  { id: 1, title: "Bohemian Rhapsody", author: "Queen", year: 1975, genre: "Rock", imagem: "imagens/BohemianRhapsody.jpg" },
   { id: 2, title: "Garota de Ipanema", author: "Tom Jobim & Vinicius de Moraes", year: 1962, genre: "Bossa Nova" },
   { id: 3, title: "Billie Jean", author: "Michael Jackson", year: 1982, genre: "Pop" },
   { id: 4, title: "Smells Like Teen Spirit", author: "Nirvana", year: 1991, genre: "Grunge" },
