@@ -111,6 +111,15 @@ const listBooks = books =>
 const listBooksByAuthor = (books, authorName) =>
   books.filter(book => book.author === authorName)
 
+
+
+// Listagem de cantores
+const listSingers = (books) => {
+  const autores = books.map(book => book.autor);
+  const autoresUnicos = autores.filter((value, index, self) => self.indexOf(value) === index);
+  return autoresUnicos;
+}
+
 // Conta quantos livros cada autor possui
 // Exemplo de retorno: { "Machado de Assis": 5, "Jorge Amado": 8 }
 const countBooksByAuthor = (books) =>
@@ -165,7 +174,7 @@ export const Livraria = {
 
   // Exibição
   listBooks, listBooksByAuthor, countBooksByAuthor,
-  formatBooks, shortFormat, fullFormat,
+  formatBooks, shortFormat, fullFormat, listSingers,
 
   // Transformações
   markOldBooks, addCategoryByAuthor, updateTitles, renameFields

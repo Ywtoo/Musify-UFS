@@ -223,3 +223,6 @@ buttons.addEventListener('click', e => {
     if(action && actions[action]) actions[action](); // Executa a função correspondente
   }
 });
+
+
+console.log(Livraria.listSingers)
