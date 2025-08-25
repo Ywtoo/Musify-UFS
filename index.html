@@ -63,11 +63,21 @@
     
     
     
-    #output { 
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-      gap: 20px;
-      padding: 20px;
+    #output {
+      width: 100%; /* Faz o elemento ocupar toda a largura disponível */
+      height: 100vh; /* Faz o elemento ocupar toda a altura da tela */
+      background-color: #f7d774;
+      padding: 20px; /* Ajustei o padding para que não sobrecarregue o conteúdo, mas você pode alterar */
+      box-sizing: border-box; /* Garante que o padding não ultrapasse a largura do elemento */
+      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      align-self: flex-start;
+      border-radius: 20px;
+      overflow: auto; /* Para garantir que o conteúdo não ultrapasse o limite da tela */
     }
 
     #main-content {
@@ -176,13 +186,6 @@
       <!-- Área para mostrar resultados (exemplo: lista de livros cadastrados) -->
       <div id="output"></div>
     </div>
-    <div id="buttons">
-      <!-- outros botões -->
-      <button data-action="browseByAuthor">Navegar por autores</button>
-    </div>
-
-    <div id="forms"></div>
-    <pre id="output"></pre>
 
     </div>
   <!-- Biblioteca externa Chart.js (para gráficos, se forem usados) -->
