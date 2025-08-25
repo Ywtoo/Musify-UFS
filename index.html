@@ -1,0 +1,186 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR"> <!-- Define que o documento é HTML5 e que o idioma principal é português do Brasil -->
+<head>
+  <meta charset="UTF-8" /> <!-- Define que os caracteres usados são UTF-8 (permite acentos e emojis) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Ajusta o layout para dispositivos móveis -->
+  <title>Musify</title> <!-- Título que aparece na aba do navegador -->
+
+  <style>
+    /* Estilo básico da página */
+    body { font-family: Bebas Neue, sans-serif; 
+      margin: 15px;
+      background-color: #a4193d;}
+    
+    #sidebar {
+      width: 220px;
+      background-color: #4a0f1b; /* Cor de fundo mais escura para a sidebar */
+      padding: 105px 100px;
+      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2); /* Sombra para dar profundidade */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      align-self: flex-start;
+      border-radius: 20px;
+      
+    }
+    
+    button {
+      padding: 17px 40px;
+      border-radius: 50px;
+      border: 0;
+      background-color: #d8ba62;
+      box-shadow: #000000 0 0 8px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      font-size: 15px;
+      transition: all .5s ease;
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+      width: 100%;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    button:hover {
+      letter-spacing: 1.5px;
+      background-color: #f7d774;
+      color: #ffffff;
+      box-shadow: #f7d774 0px 7px 29px 0px;
+    }
+
+    button:active {
+      letter-spacing: 1.5px;
+      background-color: #f7d774;
+      color:#ffffff;
+      box-shadow: #f7d774 0px 0px 0px 0px;
+      transform: translate(10px);
+      transition: 100ms;
+    }
+    
+    
+    
+    #output { 
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 20px;
+      padding: 20px;
+    }
+
+    #main-content {
+      flex-grow: 1; /* Ocupa todo o espaço restante horizontalmente */
+      padding: 20px;
+    }
+    
+    #container {
+      display: flex;            
+      align-items: flex-start; 
+      gap: 20px;                
+    }
+
+    form { margin-top: 15px;
+      padding: 17px 40px;
+      border-radius: 50px;
+      border: 0;
+      background-color: #4a0f1b;
+      box-shadow: #000000 0 0 8px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      font-size: 15px;
+      
+      
+    }
+    input { margin: 5px; padding: 5px;
+      padding: 17px 40px;
+      border-radius: 50px;
+      border: 0;
+      background-color: #f7d774;
+      box-shadow: #000000 0 0 8px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      font-size: 15px;
+      
+    } /* Campos de texto mais organizados */
+    
+      h1 {color: #f7d774;
+      font-size: 50px;}
+
+      h3 {color: #ffffff;
+      font-size: 50px;
+      }
+
+    .musica-card {
+      background: #f3d46d;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      overflow: hidden;
+      transition: transform 0.3s ease;
+    }
+
+    .musica-card:hover {
+      transform: scale(1.05);
+    }
+
+    .musica-card img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+    }
+
+    .musica-card .info {
+      padding: 12px;
+      text-align: center;
+    }
+
+    .musica-card h3 {
+      margin: 8px 0;
+      font-size: 18px;
+      color: #000;
+    }
+
+    .musica-card p {
+      margin: 0;
+      font-size: 14px;
+      color: #333;
+    }  
+  </style>
+</head>
+<body>
+  
+
+  <!-- Área de botões para o menu principal -->
+  <div id="container">
+    <div id="sidebar">
+      <h1>-Musify-</h1> <!-- Título principal na tela -->
+      <div id="buttons">
+        <!-- Cada botão tem um atributo "data-action" para indicar a ação que será executada -->
+        <button data-action="init">Iniciar Coleção de músicas</button> <!-- NOVO -->
+        <button data-action="list">Listar músicas</button>
+        <button data-action="add">Adicionar nova música</button>
+        <button data-action="update">Atualizar música</button>
+        <button data-action="delete">Remover música</button>
+        <button data-action="clear">Limpar coleção</button>
+        <button data-action="listByAuthor">Listar músicas por autor</button>
+        <button data-action="countByAuthor">Contar músicas por autor</button>
+        <button data-action="exit">Sair</button>
+      </div>
+    </div>
+
+    <!-- Aqui será exibido dinamicamente o formulário de cada ação (por exemplo, adicionar livro) -->
+    <div id="main-content">
+      <div id="forms"></div>
+
+      <!-- Área para mostrar resultados (exemplo: lista de livros cadastrados) -->
+      <div id="output"></div>
+    </div>
+    </div>
+  <!-- Biblioteca externa Chart.js (para gráficos, se forem usados) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Arquivo JavaScript separado (módulo) que controla a interface -->
+  <script type="module" src="ui.js"></script>
+</body>
+</html>
