@@ -149,6 +149,53 @@ function showAuthorChart() {
   });
 }
 
+// Feat: Gabriel test
+// --- Navegador de autores: mostra autores e, ao clicar, lista os livros desse autor ---
+function showAuthorsBrowser() {
+  forms.innerHTML = `
+    <div style="display:flex;gap:16px;align-items:flex-start">
+      <div id="authorsPane" style="width:260px">
+        <h3>Autores</h3>
+        <ul id="authorsUl" style="list-style:none;padding:0;margin:0"></ul>
+      </div>
+      <div id="booksPane" style="flex:1">
+        <h3>Selecione um autor</h3>
+        <pre id="booksList" style="white-space:pre-wrap"></pre>
+      </div>
+    </div>
+  `;
+  // obtém autores únicos ordenados
+  const authors = Array.from(new Set(books.map(b => b.author))).sort((a,b) =>
+    a.localeCompare(b, 'pt', { sensitivity: 'base' })
+  );
+
+  const ul = document.getElementById('authorsUl');
+  const booksList = document.getElementById('booksList');
+  const booksPaneTitle = document.querySelector('#booksPane h3');
+
+  if (authors.length === 0) {
+    ul.innerHTML = '<li>Nenhum autor disponível.</li>';
+    return;
+  }
+
+  authors.forEach(author => {
+    const li = document.createElement('li');
+    li.style.marginBottom = '6px';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = author;
+    btn.style.width = '100%';
+    btn.addEventListener('click', () => {
+      const filtered = Livraria.listBooksByAuthor(books, author);
+      booksPaneTitle.textContent = `Livros de ${author}`;
+      booksList.textContent = filtered.length === 0 ? 'Nenhum livro encontrado.' : Livraria.listBooks(filtered);
+    });
+    li.appendChild(btn);
+    ul.appendChild(li);
+  });
+}
+
+
 // ===== Actions =====
 // Dicionário que associa cada ação a uma função
 const actions = {
@@ -163,6 +210,7 @@ const actions = {
   delete: () => showDeleteForm(),
   clear: () => { forms.innerHTML = ''; Livraria.clearBooks(); books=[]; output.textContent='Livraria esvaziada.'; },
   listByAuthor: () => showListByAuthorForm(),
+  browseByAuthor: () => showAuthorsBrowser(),
   countByAuthor: () => showAuthorChart(),
   exit: () => { forms.innerHTML = ''; output.textContent='Bye, bye! :)'; }
 };
