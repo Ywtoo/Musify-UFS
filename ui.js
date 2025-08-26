@@ -149,50 +149,78 @@ function showAuthorChart() {
   });
 }
 
-// Feat: Gabriel test
-// --- Navegador de autores: mostra autores e, ao clicar, lista os livros desse autor ---
-function showAuthorsBrowser() {
-  forms.innerHTML = `
-    <div style="display:flex;gap:16px;align-items:flex-start">
-      <div id="authorsPane" style="width:260px">
-        <h3>Autores</h3>
-        <ul id="authorsUl" style="list-style:none;padding:0;margin:0"></ul>
-      </div>
-      <div id="booksPane" style="flex:1">
-        <h3>Selecione um autor</h3>
-        <pre id="booksList" style="white-space:pre-wrap"></pre>
+  // Feat: Gabriel test
+// --- Navegador de autores
+function showAuthorsGrid() {
+  output.innerHTML = `
+    <h3>Selecione um autor</h3>
+    <div id="authorsGrid"></div>
+  `;
+
+  const authors = Livraria.listSingers(books);
+  const grid = document.getElementById('authorsGrid');
+
+  async function getAuthorImage(author) {
+  // Tenta Wiki
+  const wikiImg = await fetchWikiImage(author);
+  if (wikiImg) return wikiImg;
+  // Tenta Last.fm
+  const lastFmImg = await getLastFmArtistImage(author);
+  if (lastFmImg) return lastFmImg;
+  // Usa imagem local/padrão
+  const book = books.find(b => b.author === author && typeof b.imagem === 'string' && b.imagem.trim() !== '');
+  return book && book.imagem ? book.imagem : 'imagens/BohemiaRhapsody.jpg';
+}
+
+  authors.forEach(async author => {
+  const div = document.createElement('div');
+  div.className = 'author-card';
+
+  const img = document.createElement('img');
+  img.alt = author;
+  img.src = await getAuthorImage(author);
+
+  const name = document.createElement('div');
+  name.className = 'author-name';
+  name.textContent = author;
+
+  div.appendChild(img);
+  div.appendChild(name);
+
+  // Torna o clique assíncrono para usar await
+  div.addEventListener('click', async () => {
+  const imgUrl = await getAuthorImage(author);
+  const lastFmData = await fetchLastFmArtist(author);
+  const wikiSummary = await fetchWikiSummary(author);
+
+  // Extrai dados do Last.fm
+  const listeners = lastFmData?.stats?.listeners || 'N/A';
+  const plays = lastFmData?.stats?.plays || 'N/A';
+  const tags = lastFmData?.tags?.tag?.map(t => t.name).join(', ') || 'N/A';
+  const bio = lastFmData?.bio?.summary || '';
+  const url = lastFmData?.url || '#';
+
+  output.innerHTML = `
+    <button id="backToAuthors" style="margin-bottom:16px;">⬅ Voltar</button>
+    <div style="display:flex;align-items:center;gap:24px;">
+      <img src="${imgUrl}" alt="${author}" style="width:90px;height:90px;border-radius:50%;border:3px solid #a4193d;background:#eee;object-fit:cover;">
+      <div>
+        <h2 style="margin:0;">${author}</h2>
+        <div style="font-size:14px;color:#444;">
+          <a href="${url}" target="_blank">Perfil no Last.fm</a><br>
+          <b>Ouvintes:</b> ${listeners}<br>
+          <b>Estilos:</b> ${tags}
+        </div>
       </div>
     </div>
+    <pre style="white-space:pre-wrap">${Livraria.listBooksByAuthor(books, author).length === 0 ? 'Nenhuma música encontrada.' : Livraria.listBooks(Livraria.listBooksByAuthor(books, author))}</pre>
   `;
-  // obtém autores únicos ordenados
-  const authors = Array.from(new Set(books.map(b => b.author))).sort((a,b) =>
-    a.localeCompare(b, 'pt', { sensitivity: 'base' })
-  );
+  document.getElementById('backToAuthors').onclick = showAuthorsGrid;
+});
 
-  const ul = document.getElementById('authorsUl');
-  const booksList = document.getElementById('booksList');
-  const booksPaneTitle = document.querySelector('#booksPane h3');
 
-  if (authors.length === 0) {
-    ul.innerHTML = '<li>Nenhum autor disponível.</li>';
-    return;
-  }
-
-  authors.forEach(author => {
-    const li = document.createElement('li');
-    li.style.marginBottom = '6px';
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.textContent = author;
-    btn.style.width = '100%';
-    btn.addEventListener('click', () => {
-      const filtered = Livraria.listBooksByAuthor(books, author);
-      booksPaneTitle.textContent = `Livros de ${author}`;
-      booksList.textContent = filtered.length === 0 ? 'Nenhum livro encontrado.' : Livraria.listBooks(filtered);
-    });
-    li.appendChild(btn);
-    ul.appendChild(li);
-  });
+  grid.appendChild(div);
+});
 }
 
 
@@ -210,7 +238,7 @@ const actions = {
   delete: () => showDeleteForm(),
   clear: () => { forms.innerHTML = ''; Livraria.clearBooks(); books=[]; output.textContent='Livraria esvaziada.'; },
   listByAuthor: () => showListByAuthorForm(),
-  browseByAuthor: () => showAuthorsBrowser(),
+  browseByAuthor: () => showAuthorsGrid(),
   countByAuthor: () => showAuthorChart(),
   exit: () => { forms.innerHTML = ''; output.textContent='Bye, bye! :)'; }
 };
@@ -224,5 +252,49 @@ buttons.addEventListener('click', e => {
   }
 });
 
+// ------------------------API--------------------
+async function fetchLastFmArtist(artistName) {
+  const apiKey = '254828efebce648b8c698471e2cd36d0';
+  const url = `https://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=${encodeURIComponent(artistName)}&api_key=${apiKey}&format=json&autocorrect=1`;
+  const response = await fetch(url);
+  const data = await response.json();
+  return data.artist;
+}
 
-console.log(Livraria.listSingers)
+async function getLastFmArtistImage(artistName) {
+  const artist = await fetchLastFmArtist(artistName);
+  if (artist && artist.image && artist.image.length > 0) {
+    // Pega a maior imagem que NÃO seja a padrão (estrela)
+    const imgObj = artist.image.reverse().find(img =>
+      img['#text'] && !img['#text'].includes('2a96cbd8b46e442fc41c2b86b821562f.png')
+    );
+    if (imgObj && imgObj['#text']) return imgObj['#text'];
+  }
+  return null;
+}
+
+async function fetchWikiImage(artistName) {
+  const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(artistName)}&prop=pageimages&format=json&pithumbsize=300&origin=*`;
+  const response = await fetch(url);
+  const data = await response.json();
+  const pages = data.query.pages;
+  for (const pageId in pages) {
+    if (pages[pageId].thumbnail && pages[pageId].thumbnail.source) {
+      return pages[pageId].thumbnail.source;
+    }
+  }
+  return null;
+}
+
+async function fetchWikiSummary(artistName) {
+  const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(artistName)}&prop=extracts&exintro=true&explaintext=true&format=json&origin=*`;
+  const response = await fetch(url);
+  const data = await response.json();
+  const pages = data.query.pages;
+  for (const pageId in pages) {
+    if (pages[pageId].extract) {
+      return pages[pageId].extract;
+    }
+  }
+  return null;
+}

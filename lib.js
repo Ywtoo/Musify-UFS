@@ -111,12 +111,10 @@ const listBooks = books =>
 const listBooksByAuthor = (books, authorName) =>
   books.filter(book => book.author === authorName)
 
-
-
 // Listagem de cantores
 const listSingers = (books) => {
-  const autores = books.map(book => book.autor);
-  const autoresUnicos = autores.filter((value, index, self) => self.indexOf(value) === index);
+  const autores = books.map(book => book.author);
+  const autoresUnicos = autores.filter((value, index, self) => recursiveIndexOf(self, value) === index);
   return autoresUnicos;
 }
 
@@ -161,6 +159,15 @@ const updateTitles = (books, transformFn) =>
 const renameFields = (books, renamerFn) =>
   books.map(book => renamerFn(book))
 
+// ========================
+// Auxiliares
+// ========================
+// Função recursiva para encontrar o índice de um elemento em um array
+function recursiveIndexOf(arr, value, start = 0) {
+  if (start >= arr.length) return -1; // Não encontrado
+  if (arr[start] === value) return start; // Encontrou
+  return recursiveIndexOf(arr, value, start + 1);
+}
 // ========================
 // Exporta todas as funções como um objeto Livraria
 // Isso facilita o uso em outros arquivos (ex: ui.js)
