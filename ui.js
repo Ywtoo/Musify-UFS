@@ -116,9 +116,9 @@ function showListByAuthorForm() {
 
 // ===== Gráfico de livros por autor =====
 function showAuthorChart() {
-  // Cria um canvas para o gráfico
-  forms.innerHTML = `<canvas id="authorChart"></canvas>`;
-  output.textContent = '';
+  // Cria o canvas para o gráfico dentro do output
+  output.innerHTML = `<canvas id="authorChart"></canvas>`;
+  forms.innerHTML = '';
 
   // Conta livros agrupados por autor
   const counts = Livraria.countBooksByAuthor(books);
@@ -148,79 +148,139 @@ function showAuthorChart() {
     }
   });
 }
-
   // Feat: Gabriel test
 // --- Navegador de autores
-function showAuthorsGrid() {
+let allAuthorsCache = null;
+
+function showAuthorsGrid(letra = "all") {
   output.innerHTML = `
-    <h3>Selecione um autor</h3>
+    <h3 class="authors-title">Selecione um autor</h3>
+    <div id="lettersMenu"></div>
     <div id="authorsGrid"></div>
   `;
 
-  const authors = Livraria.listSingers(books);
+  // Menu de letras (sem alterações)
+  const letters = ["Todos", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
+  const lettersMenu = document.getElementById('lettersMenu');
+  lettersMenu.innerHTML = '';
+  letters.forEach(l => {
+    const btn = document.createElement('button');
+    btn.textContent = l;
+    btn.className = 'letter-btn' + ((l === "Todos" && letra === "all") || l === letra ? ' selected' : '');
+    btn.onclick = () => showAuthorsGrid(l === "Todos" ? "all" : l);
+    lettersMenu.appendChild(btn);
+  });
+
+  // Usa o cache se existir, ou cria um novo
+  if (!allAuthorsCache) {
+    const unsorted = Livraria.listSingers(books);
+    allAuthorsCache = [...unsorted].sort((a, b) => {
+      const cleanA = a.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      const cleanB = b.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      return cleanA.localeCompare(cleanB);
+    });
+  }
+
+  // Filtra pelo cache existente
+  const authors = letra === "all" 
+    ? allAuthorsCache 
+    : allAuthorsCache.filter(author => {
+        const firstChar = author.charAt(0).normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        return firstChar === letra.toLowerCase();
+      });
+
   const grid = document.getElementById('authorsGrid');
-
-  async function getAuthorImage(author) {
-  // Tenta Wiki
-  const wikiImg = await fetchWikiImage(author);
-  if (wikiImg) return wikiImg;
-  // Tenta Last.fm
-  const lastFmImg = await getLastFmArtistImage(author);
-  if (lastFmImg) return lastFmImg;
-  // Usa imagem local/padrão
-  const book = books.find(b => b.author === author && typeof b.imagem === 'string' && b.imagem.trim() !== '');
-  return book && book.imagem ? book.imagem : 'imagens/BohemiaRhapsody.jpg';
-}
-
+  grid.innerHTML = '';
   authors.forEach(async author => {
-  const div = document.createElement('div');
-  div.className = 'author-card';
+    const div = document.createElement('div');
+    div.className = 'author-card';
 
-  const img = document.createElement('img');
-  img.alt = author;
-  img.src = await getAuthorImage(author);
+    const img = document.createElement('img');
+    img.alt = author;
+    img.src = await getAuthorImage(author);
+    img.className = 'author-img';
 
-  const name = document.createElement('div');
-  name.className = 'author-name';
-  name.textContent = author;
+    const name = document.createElement('div');
+    name.className = 'author-name';
+    name.textContent = author;
 
-  div.appendChild(img);
-  div.appendChild(name);
+    div.appendChild(img);
+    div.appendChild(name);
 
-  // Torna o clique assíncrono para usar await
-  div.addEventListener('click', async () => {
+    div.addEventListener('click', async () => {
   const imgUrl = await getAuthorImage(author);
   const lastFmData = await fetchLastFmArtist(author);
   const wikiSummary = await fetchWikiSummary(author);
 
-  // Extrai dados do Last.fm
   const listeners = lastFmData?.stats?.listeners || 'N/A';
-  const plays = lastFmData?.stats?.plays || 'N/A';
   const tags = lastFmData?.tags?.tag?.map(t => t.name).join(', ') || 'N/A';
-  const bio = lastFmData?.bio?.summary || '';
   const url = lastFmData?.url || '#';
 
+  // Filtra as músicas do autor com spotifyId
+  const authorBooks = books.filter(b => b.author === author && b.spotifyId);
+
   output.innerHTML = `
-    <button id="backToAuthors" style="margin-bottom:16px;">⬅ Voltar</button>
-    <div style="display:flex;align-items:center;gap:24px;">
-      <img src="${imgUrl}" alt="${author}" style="width:90px;height:90px;border-radius:50%;border:3px solid #a4193d;background:#eee;object-fit:cover;">
+    <button id="backToAuthors" class="back-btn">⬅ Voltar</button>
+    <div class="author-details">
+      <img src="${imgUrl}" alt="${author}" class="author-img-large">
       <div>
-        <h2 style="margin:0;">${author}</h2>
-        <div style="font-size:14px;color:#444;">
+        <h2 class="author-details-name">${author}</h2>
+        <div class="author-details-meta">
           <a href="${url}" target="_blank">Perfil no Last.fm</a><br>
           <b>Ouvintes:</b> ${listeners}<br>
           <b>Estilos:</b> ${tags}
         </div>
       </div>
     </div>
-    <pre style="white-space:pre-wrap">${Livraria.listBooksByAuthor(books, author).length === 0 ? 'Nenhuma música encontrada.' : Livraria.listBooks(Livraria.listBooksByAuthor(books, author))}</pre>
+    <div id="spotifyPlayer"></div>
   `;
-  document.getElementById('backToAuthors').onclick = showAuthorsGrid;
+
+  // Lista das músicas do autor com botão Play
+  document.getElementById('spotifyPlayer').innerHTML = authorBooks.length > 0
+  ? `<div class="music-list">
+      ${authorBooks.map((book, idx) => `
+        <div class="music-item">
+          <div class="music-info-row">
+            <span class="music-id">${book.id}.</span>
+            <b class="music-title">${book.title}</b>
+            <span class="music-year">(${book.year})</span>
+            <button class="play-btn" data-idx="${idx}">▶</button>
+          </div>
+          <div class="spotify-embed-container" id="spotify-embed-${idx}"></div>
+        </div>
+      `).join('')}
+    </div>`
+  : `<div style="color:#a4193d;">Nenhuma música deste autor tem ID do Spotify cadastrado.</div>`;
+
+// Evento para cada botão Play
+authorBooks.forEach((book, idx) => {
+  document.querySelector(`.play-btn[data-idx="${idx}"]`).onclick = () => {
+    authorBooks.forEach((_, i) => {
+      document.getElementById(`spotify-embed-${i}`).innerHTML = '';
+    });
+    document.getElementById(`spotify-embed-${idx}`).innerHTML = `
+      <iframe
+        src="https://open.spotify.com/embed/track/${book.spotifyId}"
+        frameborder="0"
+        allowtransparency="true"
+        allow="encrypted-media"
+        class="spotify-embed"
+      ></iframe>
+      <div style="margin-top:4px;text-align:center;">
+        <a href="https://open.spotify.com/track/${book.spotifyId}" target="_blank" style="color:#a4193d;font-weight:bold;">
+          Abrir no Spotify
+        </a>
+      </div>
+    `;
+  };
 });
 
-
-  grid.appendChild(div);
+  document.getElementById('backToAuthors').onclick = () => showAuthorsGrid(letra);
 });
+
+    grid.appendChild(div);
+  });
 }
 
 
@@ -252,7 +312,25 @@ buttons.addEventListener('click', e => {
   }
 });
 
+
+
+
+
 // ------------------------API--------------------
+async function getAuthorImage(author) {
+  // Tenta buscar imagem na Wikipedia
+  const wikiImg = await fetchWikiImage(author);
+  if (wikiImg) return wikiImg;
+
+  // Tenta buscar imagem na Last.fm
+  const lastFmImg = await getLastFmArtistImage(author);
+  if (lastFmImg) return lastFmImg;
+
+  // Usa imagem local/padrão se não encontrar nas APIs
+  const book = books.find(b => b.author === author && typeof b.imagem === 'string' && b.imagem.trim() !== '');
+  return book && book.imagem ? book.imagem : 'imagens/BohemiaRhapsody.jpg';
+}
+
 async function fetchLastFmArtist(artistName) {
   const apiKey = '254828efebce648b8c698471e2cd36d0';
   const url = `https://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=${encodeURIComponent(artistName)}&api_key=${apiKey}&format=json&autocorrect=1`;
