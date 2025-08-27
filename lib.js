@@ -7,24 +7,24 @@ const STORAGE_KEY = "Musify::songs"
 
 // Carrega a lista de músicas do localStorage
 // Se não existir nada salvo, retorna um array vazio
-const loadsongs = () => {
+const loadSongs = () => {
   const data = localStorage.getItem(STORAGE_KEY)
   return data ? JSON.parse(data) : []
 }
 
 // Salva a lista de músicas no localStorage (convertendo para texto JSON)
-const savesongs = songs =>
+const saveSongs = songs =>
   localStorage.setItem(STORAGE_KEY, JSON.stringify(songs))
 
 // Remove todas as músicas do localStorage
-const clearsongs = () => {
+const clearSongs = () => {
   localStorage.removeItem(STORAGE_KEY)
   console.log("Musify limpa.")
 }
 
 // Restaura uma lista inicial de músicas (pré-cadastradas)
 // Útil para resetar o sistema com dados de exemplo
-const resetsongs = () => {
+const resetSongs = () => {
 const songs = [
   { id: 1, title: "Bohemian Rhapsody", author: "Queen", year: 1975, genre: "Rock", artist: "Queen", album: "A Night at the Opera", duration: 354, spotifyId: "4u7EnebtmKWzUH433cf5Qv" },
   { id: 2, title: "Garota de Ipanema", author: "Tom Jobim & Vinicius de Moraes", year: 1962, genre: "Bossa Nova", artist: "Tom Jobim & Vinicius de Moraes", album: "Getz/Gilberto", duration: 201, spotifyId: "1V3oqAXt5Xiyj3RtHHLZ8O" },
@@ -79,8 +79,8 @@ const songs = [
 ]
 
 
-  savesongs(songs) 
-  console.log("Livros iniciais salvos.")
+  saveSongs(songs) 
+  console.log("Músicas iniciais salvas.")
   return songs            
 }
 
@@ -89,7 +89,7 @@ const songs = [
 // ========================
 
 // Adiciona uma nova música (retorna um novo array)
-const addsong = (songs, newsong) => [...songs, newsong]
+const addSong = (songs, newsong) => [...songs, newsong]
 
 // Atualiza uma música existente (caso encontre o id)
 const updatesong = (songs, id, updates) =>
@@ -246,10 +246,10 @@ const renameFields = (songs, renamerFn) =>
 // ========================
 export const Musify = {
   // Persistência
-  loadsongs, savesongs, resetsongs, clearsongs,
+  loadSongs, saveSongs, resetSongs, clearSongs,
 
   // CRUD
-  addsong, updatesong, deletesong,
+  addSong, updatesong, deletesong,
 
   // Exibição
   listsongs, listsongsByAuthor, countsongsByAuthor,
