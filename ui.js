@@ -157,37 +157,42 @@ async function generateSongGridHTML(list) {
 
   const html = ['<div class="song-grid">'];
 
-  // Busca capas no Wikipedia usando nome do álbum+artista ou apenas o artista
+  // Busca capas: iTunes (álbum+artista) > Wikipedia (álbum+artista) > Wikipedia (artista)
   const covers = await Promise.all(list.map(async s => {
-    // Tenta buscar capa do álbum usando combinação álbum+artista para melhor precisão
+    // 1. Tenta buscar capa do álbum no iTunes
     if (s.album) {
       const albumQuery = s.album && s.artist ? `${s.album} ${s.artist}` : s.album;
-      const albumImg = albumQuery ? await fetchWikiImage(albumQuery) : null;
-      if (albumImg) return albumImg;
+      const itunesImg = albumQuery ? await fetchItunesImage(albumQuery) : null;
+      if (itunesImg) return itunesImg;
+      // 2. Tenta buscar capa do álbum na Wikipedia
+      const wikiAlbumImg = albumQuery ? await fetchWikiImage(albumQuery) : null;
+      if (wikiAlbumImg) return wikiAlbumImg;
     }
-    // Tenta buscar imagem do artista se não encontrou capa do álbum
-    const artistImg = await fetchWikiImage(s.artist || s.author);
-    if (artistImg) return artistImg;
-    // Retorna null se não encontrou nenhuma imagem
+    // 3. Tenta buscar imagem do artista na Wikipedia
+    const wikiArtistImg = await fetchWikiImage(s.artist || s.author);
+    if (wikiArtistImg) return wikiArtistImg;
+    // 4. Retorna null se não encontrou nenhuma imagem
     return null;
   }));
 
   list.forEach((s, idx) => {
-    const coverImg = covers[idx];
-    html.push(`<div class="card">
-      <div class="cover">
-        ${coverImg
-          ? `<img src="${coverImg}" class="cover-img" alt="Capa de ${escapeHtml(s.title)}">`
-          : (s.title[0] || 'M').toUpperCase() // Usa a primeira letra do título se não encontrar imagem
-        }
-      </div>
-      <div class="meta"><h4>${escapeHtml(s.title)}</h4><p>${escapeHtml(s.artist)} • ${escapeHtml(s.album || '—')} — ${formatTime(s.duration)}</p></div>
-      <div style="display:flex;flex-direction:column;gap:6px">
-        <button onclick="playById(${s.id})">▶</button>
-        <button onclick="enqueue(${s.id})">＋</button>
-      </div>
-    </div>`);
-  });
+  const coverImg = covers[idx];
+  html.push(`<div class="card">
+    <div class="cover">
+      ${coverImg
+        ? `<img src="${coverImg}" class="cover-img" alt="Capa de ${escapeHtml(s.title)}">`
+        : (s.title[0] || 'M').toUpperCase()
+      }
+    </div>
+    <div class="meta"><h4>${escapeHtml(s.title)}</h4><p>${escapeHtml(s.artist)} • ${escapeHtml(s.album || '—')} — ${formatTime(s.duration)}</p></div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <button onclick="playById(${s.id})">▶</button>
+      <button onclick="enqueue(${s.id})">＋</button>
+      <button onclick="playItunesPreview('${escapeHtml(s.title)} ${escapeHtml(s.artist)}')">🎵 iTunes</button>
+    </div>
+    <div id="itunes-preview-${s.id}"></div>
+  </div>`);
+});
 
   html.push('</div>');
   return html.join('\n');
@@ -358,6 +363,25 @@ function showAuthorsGrid(letra = "all") {
 }
 
 // ------------------------API--------------------
+async function fetchItunesPreview(query) {
+  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=1`;
+  const response = await fetch(url);
+  const data = await response.json();
+  const result = data.results?.[0];
+  return result?.previewUrl || null;
+}
+
+// Busca imagem de álbum/artista no iTunes
+async function fetchItunesImage(query) {
+  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
+  const response = await fetch(url);
+  const data = await response.json();
+  if (data.results && data.results.length > 0) {
+    return data.results[0].artworkUrl100.replace('100x100bb', '300x300bb');
+  }
+  return null;
+}
+
 async function getAuthorImage(author) {
   // Tenta buscar imagem na Wikipedia
   const wikiImg = await fetchWikiImage(author);
@@ -447,3 +471,19 @@ buttons.addEventListener('click', e => {
 });
 
 window.playById = playById;
+window.playItunesPreview = async function(query) {
+  const previewUrl = await fetchItunesPreview(query);
+  // Procura o card certo pelo query (título + artista)
+  const song = songs.find(s => `${s.title} ${s.artist}` === query);
+  const previewDiv = song ? document.getElementById(`itunes-preview-${song.id}`) : null;
+  if (previewUrl && previewDiv) {
+    previewDiv.innerHTML = `
+      <audio controls autoplay>
+        <source src="${previewUrl}" type="audio/mpeg">
+        Seu navegador não suporta áudio embutido.
+      </audio>
+    `;
+  } else if (previewDiv) {
+    previewDiv.innerHTML = `<span style="color:var(--muted)">Prévia não encontrada.</span>`;
+  }
+};
