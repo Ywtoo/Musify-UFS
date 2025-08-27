@@ -31,7 +31,7 @@ const books = [
   { id: 3, title: "Billie Jean", author: "Michael Jackson", year: 1982, genre: "Pop", artist: "Michael Jackson", album: "Thriller", duration: 294, spotifyId: "7J1uxwnxfQLu4APicE5Rnj" },
   { id: 4, title: "Smells Like Teen Spirit", author: "Nirvana", year: 1991, genre: "Grunge", artist: "Nirvana", album: "Nevermind", duration: 301, spotifyId: "4AYxbcsoSAh8lIyYzdWI8I" },
   { id: 5, title: "No Woman, No Cry", author: "Bob Marley", year: 1974, genre: "Reggae", artist: "Bob Marley", album: "Natty Dread", duration: 257, spotifyId: "423hwXFgoN8RYmqLoLuVvY" },
-  { id: 6, title: "Like a Rolling Stone", author: "Bob Dylan", year: 1965, genre: "Folk Rock", artist: "Bob Dylan", album: "Highway 61 Revisited", duration: 369, spotifyId: "7JPQnsEfbXDNf1fo4djmZF" },
+  { id: 6, title: "Like a Rolling Stone", author: "Bob Dylan", year: 1965, genre: "Folk Rock", artist: "Bob Dylan", album: "Highway 61 Revisited", duration: 369, spotifyId: "3AhXZa8sUQht0UEdBJgpGc" },
   { id: 7, title: "Clube da Esquina Nº 2", author: "Milton Nascimento & Lô Borges", year: 1972, genre: "MPB", artist: "Milton Nascimento & Lô Borges", album: "Clube da Esquina", duration: 312, spotifyId: "5Ce7UBu9aKfg2VZE4v8yvn" },
   { id: 8, title: "Imagine", author: "John Lennon", year: 1971, genre: "Soft Rock", artist: "John Lennon", album: "Imagine", duration: 183, spotifyId: "29U7stRjqHU6rMiS8BfaI9" },
   { id: 9, title: "Yesterday", author: "The Beatles", year: 1965, genre: "Rock", artist: "The Beatles", album: "Help!", duration: 125, spotifyId: "3BQHpFgAp4l80e1XslIjNI" },

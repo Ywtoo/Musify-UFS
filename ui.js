@@ -150,34 +150,55 @@ function showAuthorChart() {
 }
 
 //Feat: Davi
-function generateSongGridHTML(list) {
-  if(!list || list.length === 0) {
-      return '<div style="color:var(--muted)">Nenhuma música na coleção.</div>';
+async function generateSongGridHTML(list) {
+  if (!list || list.length === 0) {
+    return '<div style="color:var(--muted)">Nenhuma música na coleção.</div>';
   }
-  
+
   const html = ['<div class="song-grid">'];
-  list.forEach((s,idx) => {
+
+  // Busca imagens do álbum ou cantor no Wikipedia
+  const covers = await Promise.all(list.map(async s => {
+    // Tenta capa do álbum
+    if (s.album) {
+      const albumQuery = s.album && s.artist ? `${s.album} ${s.artist}` : s.album;
+      const albumImg = albumQuery ? await fetchWikiImage(albumQuery) : null;
+      if (albumImg) return albumImg;
+    }
+    // Tenta imagem do cantor
+    const artistImg = await fetchWikiImage(s.artist || s.author);
+    if (artistImg) return artistImg;
+    // Se não achar, retorna null
+    return null;
+  }));
+
+  list.forEach((s, idx) => {
+    const coverImg = covers[idx];
     html.push(`<div class="card">
-      <div class="cover">${(s.title[0]||'M').toUpperCase()}</div>
-      <div class="meta"><h4>${escapeHtml(s.title)}</h4><p>${escapeHtml(s.artist)} • ${escapeHtml(s.album||'—')} — ${formatTime(s.duration)}</p></div>
+      <div class="cover">
+        ${coverImg
+          ? `<img src="${coverImg}" class="cover-img" alt="Capa de ${escapeHtml(s.title)}">`
+          : (s.title[0] || 'M').toUpperCase()
+        }
+      </div>
+      <div class="meta"><h4>${escapeHtml(s.title)}</h4><p>${escapeHtml(s.artist)} • ${escapeHtml(s.album || '—')} — ${formatTime(s.duration)}</p></div>
       <div style="display:flex;flex-direction:column;gap:6px">
         <button onclick="playById(${s.id})">▶</button>
         <button onclick="enqueue(${s.id})">＋</button>
       </div>
     </div>`);
   });
+
   html.push('</div>');
   return html.join('\n');
 }
 
-// Função para renderizar no output principal
-function renderList(list=books) {
-    output.innerHTML = generateSongGridHTML(list);
+async function renderList(list = books) {
+  output.innerHTML = await generateSongGridHTML(list);
 }
 
-// Função para renderizar em um container específico
-function renderAuthorBooks(list, container) {
-    container.innerHTML = generateSongGridHTML(list);
+async function renderAuthorBooks(list, container) {
+  container.innerHTML = await generateSongGridHTML(list);
 }
 
 function escapeHtml(t){ return (t||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;') }
@@ -266,67 +287,74 @@ function showAuthorsGrid(letra = "all") {
   const grid = document.getElementById('authorsGrid');
   grid.innerHTML = '';
   authors.forEach(async author => {
-    const div = document.createElement('div');
-    div.className = 'author-card';
+  const div = document.createElement('div');
+  div.className = 'author-card';
 
-    const img = document.createElement('img');
-    img.alt = author;
-    img.src = await getAuthorImage(author);
-    img.className = 'author-img';
+  let imgUrl = await getAuthorImage(author);
 
-    const name = document.createElement('div');
-    name.className = 'author-name';
-    name.textContent = author;
+  let cover;
+  if (imgUrl && !imgUrl.endsWith('BohemiaRhapsody.jpg')) {
+    cover = document.createElement('img');
+    cover.alt = author;
+    cover.src = imgUrl;
+    cover.className = 'author-img';
+  } else {
+    cover = document.createElement('div');
+    cover.className = 'cover author-img';
+    cover.textContent = (author[0] || 'A').toUpperCase();
+  }
 
-    div.appendChild(img);
-    div.appendChild(name);
+  const name = document.createElement('div');
+  name.className = 'author-name';
+  name.textContent = author;
 
-    div.addEventListener('click', async () => {
-      // Filtrar músicas pelo autor selecionado
-      const authorBooks = books.filter(b => b.author === author);
-      
-      // Limpar output primeiro
-      output.innerHTML = '';
-      
-      // Adicionar botão Voltar no topo
-      const backButton = document.createElement('button');
-      backButton.id = 'backToAuthors';
-      backButton.className = 'back-btn';
-      backButton.textContent = '⬅ Voltar';
-      backButton.onclick = () => showAuthorsGrid(letra);
-      output.appendChild(backButton);
-      
-      // Exibir informações do autor
-      const imgUrl = await getAuthorImage(author);
-      const lastFmData = await fetchLastFmArtist(author);
-      
-      // Criar cabeçalho com info do autor
-      const authorHeader = document.createElement('div');
-      authorHeader.className = 'author-details';
-      authorHeader.innerHTML = `
-        <img src="${imgUrl}" alt="${author}" class="author-img-large">
-        <div>
-          <h2 class="author-details-name">${author}</h2>
-          <div class="author-details-meta">
-            ${lastFmData?.url ? `<a href="${lastFmData.url}" target="_blank">Perfil no Last.fm</a><br>` : ''}
-            ${lastFmData?.stats?.listeners ? `<b>Ouvintes:</b> ${lastFmData.stats.listeners}<br>` : ''}
-            ${lastFmData?.tags?.tag ? `<b>Estilos:</b> ${lastFmData.tags.tag.map(t => t.name).join(', ')}` : ''}
-          </div>
+  div.appendChild(cover);
+  div.appendChild(name);
+
+  div.addEventListener('click', async () => {
+    // Filtrar músicas pelo autor selecionado
+    const authorBooks = books.filter(b => b.author === author);
+
+    output.innerHTML = '';
+
+    const backButton = document.createElement('button');
+    backButton.id = 'backToAuthors';
+    backButton.className = 'back-btn';
+    backButton.textContent = '⬅ Voltar';
+    backButton.onclick = () => showAuthorsGrid(letra);
+    output.appendChild(backButton);
+
+    // Exibir informações do autor
+    imgUrl = await getAuthorImage(author);
+    const lastFmData = await fetchLastFmArtist(author);
+
+    const authorHeader = document.createElement('div');
+    authorHeader.className = 'author-details';
+    authorHeader.innerHTML = `
+      ${imgUrl && !imgUrl.endsWith('BohemiaRhapsody.jpg')
+        ? `<img src="${imgUrl}" alt="${author}" class="author-img-large">`
+        : `<div class="cover author-img-large">${(author[0] || 'A').toUpperCase()}</div>`
+      }
+      <div>
+        <h2 class="author-details-name">${author}</h2>
+        <div class="author-details-meta">
+          ${lastFmData?.url ? `<a href="${lastFmData.url}" target="_blank">Perfil no Last.fm</a><br>` : ''}
+          ${lastFmData?.stats?.listeners ? `<b>Ouvintes:</b> ${lastFmData.stats.listeners}<br>` : ''}
+          ${lastFmData?.tags?.tag ? `<b>Estilos:</b> ${lastFmData.tags.tag.map(t => t.name).join(', ')}` : ''}
         </div>
-      `;
-      output.appendChild(authorHeader);
-      
-      // Criar um container para a lista de músicas
-      const songsContainer = document.createElement('div');
-      songsContainer.id = 'songsContainer';
-      output.appendChild(songsContainer);
-      
-      // Renderizar a lista de músicas dentro deste container
-      renderAuthorBooks(authorBooks, songsContainer);
-    });
+      </div>
+    `;
+    output.appendChild(authorHeader);
 
-    grid.appendChild(div);
+    const songsContainer = document.createElement('div');
+    songsContainer.id = 'songsContainer';
+    output.appendChild(songsContainer);
+
+    renderAuthorBooks(authorBooks, songsContainer);
   });
+
+  grid.appendChild(div);
+});
 }
 
 // ------------------------API--------------------
@@ -429,4 +457,3 @@ buttons.addEventListener('click', e => {
 });
 
 window.playById = playById;
-window.enqueue = enqueue;
