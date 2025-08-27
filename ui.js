@@ -148,7 +148,64 @@ function showAuthorChart() {
     }
   });
 }
-  // Feat: Gabriel test
+
+//Feat: Davi
+function generateSongGridHTML(list) {
+    if(!list || list.length === 0) {
+        return '<div style="color:var(--muted)">Nenhuma música na coleção.</div>';
+    }
+    
+    const html = ['<div class="song-grid">'];
+    list.forEach((s,idx) => {
+      html.push(`<div class="card">
+        <div class="cover">${(s.title[0]||'M').toUpperCase()}</div>
+        <div class="meta"><h4>${escapeHtml(s.title)}</h4><p>${escapeHtml(s.artist)} • ${escapeHtml(s.album||'—')} — ${formatTime(s.duration)}</p></div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <button onclick="playById('${s.id}')">▶</button>
+          <button onclick="enqueue('${s.id}')">＋</button>
+        </div>
+      </div>`);
+    });
+    html.push('</div>');
+    return html.join('\n');
+}
+
+// Função para renderizar no output principal
+function renderList(list=books) {
+    output.innerHTML = generateSongGridHTML(list);
+}
+
+// Função para renderizar em um container específico
+function renderAuthorBooks(list, container) {
+    container.innerHTML = generateSongGridHTML(list);
+}
+
+function escapeHtml(t){ return (t||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;') }
+function formatTime(sec){ if(!sec) return '0:00'; const m=Math.floor(sec/60); const s=Math.floor(sec%60).toString().padStart(2,'0'); return `${m}:${s}` }
+function playById(id){ const idx = loadSongs().findIndex(s=>s.id===id); if(idx<0) return; queue = [ ...loadSongs().slice(idx), ...loadSongs().slice(0,idx) ]; currentIndex=0; playQueue(); }
+function enqueue(id){ queue.push(loadSongs().find(s=>s.id===id)); updateQueueInfo(); toast('Enfileirada') }
+
+const search = document.getElementById('globalSearch');
+
+search.addEventListener('input', () => {
+    const q = search.value.trim().toLowerCase();
+
+    if(!q){ 
+        renderList(books); // lista completa
+        return;
+    }
+
+    const filtered = books.filter(s => {
+        const text = (s.title + s.artist + (s.album || '')).toLowerCase();
+        return text.includes(q);
+    });
+
+    renderList(filtered);
+});
+
+
+
+  // Feat: Gabriel 
 // --- Navegador de autores
 let allAuthorsCache = null;
 
@@ -171,7 +228,7 @@ function showAuthorsGrid(letra = "all") {
     lettersMenu.appendChild(btn);
   });
 
-  // Usa o cache se existir, ou cria um novo
+  // Código para filtrar autores (sem alterações)
   if (!allAuthorsCache) {
     const unsorted = Livraria.listSingers(books);
     allAuthorsCache = [...unsorted].sort((a, b) => {
@@ -181,7 +238,6 @@ function showAuthorsGrid(letra = "all") {
     });
   }
 
-  // Filtra pelo cache existente
   const authors = letra === "all" 
     ? allAuthorsCache 
     : allAuthorsCache.filter(author => {
@@ -209,111 +265,54 @@ function showAuthorsGrid(letra = "all") {
     div.appendChild(name);
 
     div.addEventListener('click', async () => {
-  const imgUrl = await getAuthorImage(author);
-  const lastFmData = await fetchLastFmArtist(author);
-  const wikiSummary = await fetchWikiSummary(author);
-
-  const listeners = lastFmData?.stats?.listeners || 'N/A';
-  const tags = lastFmData?.tags?.tag?.map(t => t.name).join(', ') || 'N/A';
-  const url = lastFmData?.url || '#';
-
-  // Filtra as músicas do autor com spotifyId
-  const authorBooks = books.filter(b => b.author === author && b.spotifyId);
-
-  output.innerHTML = `
-    <button id="backToAuthors" class="back-btn">⬅ Voltar</button>
-    <div class="author-details">
-      <img src="${imgUrl}" alt="${author}" class="author-img-large">
-      <div>
-        <h2 class="author-details-name">${author}</h2>
-        <div class="author-details-meta">
-          <a href="${url}" target="_blank">Perfil no Last.fm</a><br>
-          <b>Ouvintes:</b> ${listeners}<br>
-          <b>Estilos:</b> ${tags}
-        </div>
-      </div>
-    </div>
-    <div id="spotifyPlayer"></div>
-  `;
-
-  // Lista das músicas do autor com botão Play
-  document.getElementById('spotifyPlayer').innerHTML = authorBooks.length > 0
-  ? `<div class="music-list">
-      ${authorBooks.map((book, idx) => `
-        <div class="music-item">
-          <div class="music-info-row">
-            <span class="music-id">${book.id}.</span>
-            <b class="music-title">${book.title}</b>
-            <span class="music-year">(${book.year})</span>
-            <button class="play-btn" data-idx="${idx}">▶</button>
+      // Filtrar músicas pelo autor selecionado
+      const authorBooks = books.filter(b => b.author === author);
+      
+      // Limpar output primeiro
+      output.innerHTML = '';
+      
+      // Adicionar botão Voltar no topo
+      const backButton = document.createElement('button');
+      backButton.id = 'backToAuthors';
+      backButton.className = 'back-btn';
+      backButton.textContent = '⬅ Voltar';
+      backButton.onclick = () => showAuthorsGrid(letra);
+      output.appendChild(backButton);
+      
+      // Exibir informações do autor
+      const imgUrl = await getAuthorImage(author);
+      const lastFmData = await fetchLastFmArtist(author);
+      
+      // Criar cabeçalho com info do autor
+      const authorHeader = document.createElement('div');
+      authorHeader.className = 'author-details';
+      authorHeader.innerHTML = `
+        <img src="${imgUrl}" alt="${author}" class="author-img-large">
+        <div>
+          <h2 class="author-details-name">${author}</h2>
+          <div class="author-details-meta">
+            ${lastFmData?.url ? `<a href="${lastFmData.url}" target="_blank">Perfil no Last.fm</a><br>` : ''}
+            ${lastFmData?.stats?.listeners ? `<b>Ouvintes:</b> ${lastFmData.stats.listeners}<br>` : ''}
+            ${lastFmData?.tags?.tag ? `<b>Estilos:</b> ${lastFmData.tags.tag.map(t => t.name).join(', ')}` : ''}
           </div>
-          <div class="spotify-embed-container" id="spotify-embed-${idx}"></div>
         </div>
-      `).join('')}
-    </div>`
-  : `<div style="color:#a4193d;">Nenhuma música deste autor tem ID do Spotify cadastrado.</div>`;
-
-// Evento para cada botão Play
-authorBooks.forEach((book, idx) => {
-  document.querySelector(`.play-btn[data-idx="${idx}"]`).onclick = () => {
-    authorBooks.forEach((_, i) => {
-      document.getElementById(`spotify-embed-${i}`).innerHTML = '';
+      `;
+      output.appendChild(authorHeader);
+      
+      // Criar um container para a lista de músicas
+      const songsContainer = document.createElement('div');
+      songsContainer.id = 'songsContainer';
+      output.appendChild(songsContainer);
+      
+      // Renderizar a lista de músicas dentro deste container
+      renderAuthorBooks(authorBooks, songsContainer);
     });
-    document.getElementById(`spotify-embed-${idx}`).innerHTML = `
-      <iframe
-        src="https://open.spotify.com/embed/track/${book.spotifyId}"
-        frameborder="0"
-        allowtransparency="true"
-        allow="encrypted-media"
-        class="spotify-embed"
-      ></iframe>
-      <div style="margin-top:4px;text-align:center;">
-        <a href="https://open.spotify.com/track/${book.spotifyId}" target="_blank" style="color:#a4193d;font-weight:bold;">
-          Abrir no Spotify
-        </a>
-      </div>
-    `;
-  };
-});
-
-  document.getElementById('backToAuthors').onclick = () => showAuthorsGrid(letra);
-});
 
     grid.appendChild(div);
   });
 }
 
-
-// ===== Actions =====
-// Dicionário que associa cada ação a uma função
-const actions = {
-  init: () => {
-    books = Livraria.resetBooks();
-    output.textContent = "📚 Livraria iniciada com lista de livros padrão!";
-    forms.innerHTML = "";
-  },
-  list: () => { forms.innerHTML = ''; output.textContent = Livraria.listBooks(books); },
-  add: () => showAddForm(),
-  update: () => showUpdateForm(),
-  delete: () => showDeleteForm(),
-  clear: () => { forms.innerHTML = ''; Livraria.clearBooks(); books=[]; output.textContent='Livraria esvaziada.'; },
-  listByAuthor: () => showListByAuthorForm(),
-  browseByAuthor: () => showAuthorsGrid(),
-  countByAuthor: () => showAuthorChart(),
-  exit: () => { forms.innerHTML = ''; output.textContent='Bye, bye! :)'; }
-};
-
-// ===== Event listener =====
-// Captura cliques nos botões do menu e chama a ação correspondente
-buttons.addEventListener('click', e => {
-  if(e.target.tagName === 'BUTTON') {
-    const action = e.target.dataset.action; // Lê o "data-action" do botão
-    if(action && actions[action]) actions[action](); // Executa a função correspondente
-  }
-});
-
-
-
+//spotify embed
 
 
 // ------------------------API--------------------
@@ -376,3 +375,31 @@ async function fetchWikiSummary(artistName) {
   }
   return null;
 }
+
+// ===== Actions =====
+// Dicionário que associa cada ação a uma função
+const actions = {
+  init: () => {
+      books = Livraria.resetBooks();
+      renderList(books);
+      forms.innerHTML = "";
+    },
+  list: () => { forms.innerHTML = ''; renderList(books); },
+  add: () => showAddForm(),
+  update: () => showUpdateForm(),
+  delete: () => showDeleteForm(),
+  clear: () => { forms.innerHTML = ''; Livraria.clearBooks(); books=[]; output.textContent='Livraria esvaziada.'; },
+  listByAuthor: () => showListByAuthorForm(),
+  browseByAuthor: () => showAuthorsGrid(),
+  countByAuthor: () => showAuthorChart(),
+  exit: () => { forms.innerHTML = ''; output.textContent='Bye, bye! :)'; }
+};
+
+// ===== Event listener =====
+// Captura cliques nos botões do menu e chama a ação correspondente
+buttons.addEventListener('click', e => {
+  if(e.target.tagName === 'BUTTON') {
+    const action = e.target.dataset.action; // Lê o "data-action" do botão
+    if(action && actions[action]) actions[action](); // Executa a função correspondente
+  }
+});

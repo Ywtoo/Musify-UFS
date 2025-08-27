@@ -1,227 +1,129 @@
 
 <!DOCTYPE html>
-<html lang="pt-BR"> <!-- Define que o documento é HTML5 e que o idioma principal é português do Brasil -->
+<html lang="pt-BR"> 
 <head>
-  <meta charset="UTF-8" /> <!-- Define que os caracteres usados são UTF-8 (permite acentos e emojis) -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Ajusta o layout para dispositivos móveis -->
-  <title>Musify</title> <!-- Título que aparece na aba do navegador -->
+  <meta charset="UTF-8" /> 
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+  <title>Musify</title> 
 
   <style>
-    /* Estilo básico da página */
-    body { font-family: Bebas Neue, sans-serif; 
-      margin: 15px;
-      background-color: #a4193d;}
-    
-    #sidebar {
-      width: 220px;
-      background-color: #4a0f1b; /* Cor de fundo mais escura para a sidebar */
-      padding: 105px 100px;
-      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2); /* Sombra para dar profundidade */
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      position: sticky;
-      top: 0;
-      align-self: flex-start;
-      border-radius: 20px;
 
-      
-    }
-    
-    button {
-      padding: 17px 40px;
-      border-radius: 50px;
-      border: 0;
-      background-color: #d8ba62;
-      box-shadow: #000000 0 0 8px;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      font-size: 15px;
-      transition: all .5s ease;
-      display: flex;
-      gap: 10px;
-      margin-bottom: 12px;
-      width: 100%;
-      text-align: center;
-      white-space: nowrap;
+    /* Reset simples */
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial}
+
+    :root{
+      --accent:#1db954; /* Spotify-like green */
+      --bg:#121212;
+      --panel:#181818;
+      --muted:#b3b3b3;
+      --gold:#d8ba62;
     }
 
-    button:hover {
-      letter-spacing: 1.5px;
-      background-color: #f7d774;
-      color: #ffffff;
-      box-shadow: #f7d774 0px 7px 29px 0px;
-    }
+    body{background:linear-gradient(180deg,#0f0f0f 0%, #121212 100%);color:#fff}
 
-    button:active {
-      letter-spacing: 1.5px;
-      background-color: #f7d774;
+    /* Layout */
+    #container{display:flex;min-height:100vh;gap:18px;padding:18px}
+
+    /* Sidebar (kept from user, but restyled) */
+    #sidebar{width:260px;background:#0e0e0e;border-radius:12px;padding:28px;display:flex;flex-direction:column;gap:16px;align-items:stretch}
+    #sidebar h1{font-family:'Bebas Neue',sans-serif;margin:0;text-transform:uppercase;letter-spacing:4px;color:var(--gold);font-size:28px;text-align:center}
+    #buttons{display:flex;flex-direction:column;gap:8px}
+    button[data-action]{padding:12px 14px;border-radius:999px;border:0;background:linear-gradient(180deg,#2a2a2a,#171717);color:#fff;cursor:pointer;text-align:center; transition: all .5s ease;}
+    button[data-action]:hover{box-shadow:0 6px 18px rgba(255, 255, 255, 0.6);transform:translateY(-2px); background: #ffffff; color:#0f0f0f}
+    button[data-action]:active{
+      background:linear-gradient(180deg,#2a2a2a,#171717);
       color:#ffffff;
-      box-shadow: #f7d774 0px 0px 0px 0px;
+      box-shadow: #000000 0px 0px 0px 0px;
       transform: translate(10px);
-      transition: 100ms;
-    }
-    
-    
-    
-    #output {
-      width: 100%;
-      height: 90vh;
-      background-color: #f7d774;
-      padding: 20px;
-      box-sizing: border-box;
-      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
-      display: flex;
-      flex-direction: column;
-      align-items: stretch;   /* <-- alterado aqui */
-      position: sticky;
-      top: 0;
-      align-self: flex-start;
-      border-radius: 20px;
-      overflow: auto;
-      scrollbar-width: thin;
-      scrollbar-color: #a4193d transparent;
-    }
-          
+      transition: 100ms;}
 
-    /* Scrollbar minimalista para Chrome, Edge, Safari */
-    #output::-webkit-scrollbar {
-      width: 6px;
-      background: transparent;
-    }
+    /* Main area */
+    #main{flex:1;display:flex;flex-direction:column;gap:18px}
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .search{flex:1}
+    .search input{width:100%;padding:12px;border-radius:999px;border:0;background:#222;color:#fff}
 
-    #output::-webkit-scrollbar-thumb {
-      background: #a4193d;
-      border-radius: 8px;
-      border: none;
-    }
+    .content{display:flex;gap:18px;align-items:flex-start}
+    #library{flex:1;background:var(--panel);padding:16px;border-radius:12px;min-height:520px}
+    #playerPanel{width:360px;background:linear-gradient(180deg,#151515,#0f0f0f);padding:16px;border-radius:12px}
 
-    #output::-webkit-scrollbar-thumb:hover {
-      background: #d8ba62;
-    }
+    /* Song list */
+    .song-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+    .card{background:#0e0e0e;padding:12px;border-radius:10px;display:flex;gap:12px;align-items:center}
+    .cover{width:64px;height:64px;border-radius:6px;background:linear-gradient(135deg,var(--accent),#444);display:flex;align-items:center;justify-content:center;font-weight:700}
+    .meta{flex:1}
+    .meta h4{margin:0;font-size:16px}
+    .meta p{margin:0;color:var(--muted);font-size:13px}
+    .card button{padding:8px 10px;border-radius:8px}
+    .loading {color: var(--muted);text-align: center;padding: 20px;font-style: italic;}
+    .cover-img {width: 100%;height: 100%;object-fit: cover;border-radius: 6px;}
 
-    #main-content {
-      flex-grow: 1; /* Ocupa todo o espaço restante horizontalmente */
-      padding: 20px;
-    }
-    
-    #container {
-      display: flex;            
-      align-items: flex-start; 
-      gap: 20px;                
-    }
+    /* forms area */
+    form{margin-top:8px}
+    .form{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:#101010;padding:12px;border-radius:10px}
+    .form input,.form select{padding:10px;border-radius:8px;border:0;background:#141414;color:#fff}
+    .form textarea{grid-column:1/-1;padding:10px;border-radius:8px;background:#141414;color:#fff}
+    .form.actions{grid-column:1/-1;display:flex;gap:8px}
 
-    form { margin-top: 15px;
-      padding: 17px 40px;
-      border-radius: 50px;
-      border: 0;
-      background-color: #4a0f1b;
-      box-shadow: #000000 0 0 8px;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      font-size: 15px;
-      
-      
-    }
-    input { margin: 5px; padding: 5px;
-      padding: 17px 40px;
-      border-radius: 50px;
-      border: 0;
-      background-color: #f7d774;
-      box-shadow: #000000 0 0 8px;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      font-size: 15px;
-      
-    } /* Campos de texto mais organizados */
-    
-      h1 {color: #f7d774;
-      font-size: 50px;}
+    /* player */
+    #nowPlaying{display:flex;flex-direction:column;gap:12px}
+    .np-row{display:flex;gap:12px;align-items:center}
+    .progress{height:8px;background:#222;border-radius:8px;position:relative}
+    .progress > i{position:absolute;left:0;top:0;height:100%;width:0;background:linear-gradient(90deg,var(--accent),#3dbb6f);border-radius:8px}
+    .controls{display:flex;gap:8px;align-items:center}
+    .big{font-size:18px;padding:12px 14px;border-radius:999px}
 
-      h3 {
-        color: #a4193d;
-        font-size: 2em;
-        margin-bottom: 12px;
-        font-weight: bold;
-        letter-spacing: 1px;
-      }
+    footer{position:fixed;left:0;right:0;bottom:0;padding:10px 18px;background:rgba(0,0,0,.6);display:flex;gap:12px;align-items:center}
 
-    .musica-card {
-      background: #f3d46d;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-      overflow: hidden;
-      transition: transform 0.3s ease;
-    }
-
-    .musica-card:hover {
-      transform: scale(1.05);
-    }
-
-    .musica-card img {
-      width: 100%;
-      height: 180px;
-      object-fit: cover;
-    }
-
-    .musica-card .info {
-      padding: 12px;
-      text-align: center;
-    }
-
-    .musica-card h3 {
-      margin: 8px 0;
-      font-size: 18px;
-      color: #000;
-    }
-
-    .musica-card p {
-      margin: 0;
-      font-size: 14px;
-      color: #333;
-    }  
+    /* responsive */
+    @media (max-width:900px){#sidebar{display:none} #playerPanel{display:none}}
 
     /* Grid de cantores */
+/* Grid de cantores */
 #lettersMenu {
   display: flex;
   flex-wrap: wrap;
-  gap: 0; /* Sem espaço extra entre botões */
-  margin: 0 0 12px 0; /* Menor espaço abaixo */
+  gap: 4px;
+  margin: 0 0 16px 0;
   align-items: center;
   justify-content: flex-start;
   width: 100%;
   box-sizing: border-box;
+  background: #181818;
+  padding: 8px;
+  border-radius: 8px;
 }
 
 #authorsGrid {
   flex: 1 1 auto;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 18px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
   min-height: 0;
   align-items: flex-start;
-  width: 100%;           /* Garante que ocupe toda a largura do output */
+  width: 100%;
   box-sizing: border-box;
 }
 
 .authors-title {
-  margin-bottom: 12px;  /* Aumentei um pouco para dar mais espaço */
-  font-size: 1.3em;
-  color: #a4193d;
-  display: block;  /* Garante que ocupe toda a linha */
+  margin-bottom: 18px;
+  font-size: 1.5em;
+  color: #fff;
+  display: block;
   width: 100%;
 }
 
 .letter-btn {
   background: none;
   border: none;
-  color: #a4193d;
+  color: var(--muted);
   font-size: 0.95em;
   font-weight: normal;
-  padding: 0 3px; /* Bem compacto */
+  padding: 4px 8px;
   margin: 0;
   cursor: pointer;
-  border-radius: 0;
+  border-radius: 4px;
   outline: none;
   text-decoration: none;
   box-shadow: none;
@@ -229,201 +131,177 @@
   min-width: auto;
   width: auto;
   line-height: 1.2;
+  transition: color 0.2s, background 0.2s;
+}
+
+.letter-btn:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.1);
 }
 
 .letter-btn.selected {
-  text-decoration: underline;
+  text-decoration: none;
   font-weight: bold;
+  color: var(--accent);
+  background: rgba(29, 185, 84, 0.1);
 }
 
-/* Separador visual entre letras */
+/* Removido separador visual para seguir estética minimalista */
 .letter-btn:not(:last-child)::after {
-  content: "|";
-  color: #a4193d;
-  margin: 0 2px;
-  opacity: 0.7;
+  display: none;
 }
 
 .author-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  flex: 1 1 120px;       /* Cresce até 120px, mas pode ocupar mais espaço */
-  max-width: 180px;      /* Limita o tamanho máximo do card */
-  min-width: 160px; 
-  min-height: 140px;     /* Limita o tamanho mínimo do card */
   cursor: pointer;
   border-radius: 12px;
-  transition: box-shadow .2s;
-  background: #fffbe6;
-  box-shadow: 0 2px 8px rgba(164,25,61,0.07);
+  transition: transform 0.2s, background 0.2s;
+  background: #0e0e0e;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
   margin: 0;
-  padding-top: 16px;            
+  padding: 16px;
 }
 
 .author-card:hover {
-  box-shadow: 0 4px 16px rgba(164,25,61,0.18);
+  transform: translateY(-4px);
+  background: #1a1a1a;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.4);
 }
 
 .author-img {
-  width: 80px;
-  height: 80px;
+  width: 90px;
+  height: 90px;
   border-radius: 50%;
   object-fit: cover;
-  margin-bottom: 8px;
-  border: 2px solid #a4193d;
-  background: #eee;
+  margin-bottom: 12px;
+  border: 2px solid var(--accent);
+  background: #222;
 }
 
 .author-name {
   font-size: 1em;
-  color: #a4193d;
+  color: #fff;
   text-align: center;
   font-weight: bold;
 }
 
 .back-btn {
-  margin-bottom: 16px;
-  background: none;
+  margin-bottom: 24px;
+  background: #181818;
   border: none;
-  color: #a4193d;
+  color: var(--muted);
   font-size: 1em;
   cursor: pointer;
   font-weight: bold;
+  padding: 8px 16px;
+  border-radius: 999px;
+  transition: background 0.2s, color 0.2s;
 }
 
-.author-details {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-}
-
-.author-img-large {
-  width: 90px;
-  height: 90px;
-  border-radius: 50%;
-  border: 3px solid #a4193d;
-  background: #eee;
-  object-fit: cover;
-}
-
-.author-details-name {
-  margin: 0;
-  font-size: 1.3em;
-  color: #a4193d;
-}
-
-.author-details-meta {
-  font-size: 14px;
-  color: #444;
-}
-
-.author-books {
-  white-space: pre-wrap;
-  font-size: 1em;
-  color: #4a0f1b;
-}
-
- /* Coisa do spotify */
-.music-list {
-  margin-top: 16px;
-}
-.music-item {
-  background: #fffbe6;
-  border-radius: 12px;
-  margin-bottom: 12px;
-  padding: 12px;
-  box-shadow: 0 2px 8px rgba(164,25,61,0.07);
-  display: flex;
-  flex-direction: column;
-}
-.music-info-row {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 8px;
-}
-.music-id {
-  color: #a4193d;
-  font-weight: bold;
-  margin-right: 8px;
-}
-.music-title {
-  color: #a4193d;
-}
-.music-year {
-  color: #555;
-  font-size: 0.95em;
-}
-.play-btn {
-  background: #a4193d;
+.back-btn:hover {
+  background: #222;
   color: #fff;
-  border: none;
-  border-radius: 50%;
-  width: 28px;
-  height: 28px;
-  cursor: pointer;
-  font-size: 1em;
-  display: flex;
+}
+
+.author-details {display: flex;align-items: center;gap: 24px;background: #181818;padding: 20px;border-radius: 12px;margin-bottom: 24px;}
+
+.author-img-large {width: 120px;height: 120px;border-radius: 50%;border: 3px solid var(--accent);background: #222;object-fit: cover;}
+
+.author-details-name {margin: 0 0 12px 0;font-size: 1.8em;color: #fff;}
+
+.author-details-meta {font-size: 14px;color: var(--muted);line-height: 1.5;}
+
+.author-details-meta a {color: var(--accent);text-decoration: none;}
+
+.author-details-meta a:hover {text-decoration: underline;}
+
+.author-books {white-space: pre-wrap; font-size: 1em; color: var(--muted);}
+
+/* Container para a lista de músicas após detalhes do autor */
+#songsContainer {margin-top: 24px;}
+
+.spotify-btn {
+  background: #000 !important;
+  color: #1DB954 !important;
+  border-radius: 50% !important;
+  width: 32px !important;
+  height: 32px !important;
+  padding: 6px !important;
+  display: flex !important;
   align-items: center;
   justify-content: center;
-  margin-left: auto;
-  transition: background .2s;
 }
-.play-btn:hover {
-  background: #d32f2f;
-}
-.spotify-embed-container {
-  margin-top: 8px;
-}
-.spotify-embed {
-  width: 100%;
-  max-width: 800px;
-  height: 80px;
-  border-radius: 16px;
-  box-shadow: 0 2px 16px rgba(164,25,61,0.18);
-  background: #000;
-  display: block;
-  margin: 0 auto;
+
+.spotify-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 5px rgba(29, 185, 84, 0.5);
 }
 
 </style>
 </head>
 <body>
-  
-
-  <!-- Área de botões para o menu principal -->
-  <div id="container">
+<div id="container">
     <div id="sidebar">
-      <h1>-Musify-</h1> <!-- Título principal na tela -->
+      <h1>Musify</h1>
       <div id="buttons">
-        <!-- Cada botão tem um atributo "data-action" para indicar a ação que será executada -->
-        <button data-action="init">Iniciar Coleção de músicas</button> <!-- NOVO -->
+        <button data-action="init">Iniciar Coleção de músicas</button>
         <button data-action="list">Listar músicas</button>
         <button data-action="add">Adicionar nova música</button>
         <button data-action="update">Atualizar música</button>
         <button data-action="delete">Remover música</button>
         <button data-action="clear">Limpar coleção</button>
-        <button data-action="listByAuthor">Listar músicas por autor</button>
         <button data-action="browseByAuthor">Cantores</button>
+        <button data-action="listByAuthor">Listar músicas por autor</button>
         <button data-action="countByAuthor">Contar músicas por autor</button>
         <button data-action="exit">Sair</button>
       </div>
+      <div style="margin-top:auto;color:var(--muted);font-size:13px;text-align:center"></div>
     </div>
 
-    <!-- Aqui será exibido dinamicamente o formulário de cada ação (por exemplo, adicionar livro) -->
-    <div id="main-content">
+    <div id="main"> 
+      <div class="topbar">
+        <div class="search"><input id="globalSearch" placeholder="Pesquisar música, artista ou álbum..." /></div>
+        <div style="width:150px;text-align:right;color:var(--muted)"></div>
+      </div>
+
       <div id="forms"></div>
 
-      <!-- Área para mostrar resultados (exemplo: lista de livros cadastrados) -->
-      <div id="output"></div>
-    </div>
+      <div class="content">
+        <div id="library">
+          <h3 style="margin:0 0 12px 0">Biblioteca</h3>
+          <div id="output" style="min-height:360px"></div>
+        </div>
 
-    </div>
-  <!-- Biblioteca externa Chart.js (para gráficos, se forem usados) -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <div id="playerPanel">
+          <h3 style="margin:0 0 6px 0">Player</h3>
+          <div id="nowPlaying">
+            <div class="np-row">
+              <div class="cover" id="npCover">M</div>
+              <div style="flex:1">
+                <div id="npTitle">Nenhuma música</div>
+                <div id="npArtist" style="color:var(--muted)"></div>
+              </div>
+            </div>
 
-  <!-- Arquivo JavaScript separado (módulo) que controla a interface -->
+            <div class="progress" id="progress"><i></i></div>
+            <div style="display:flex;justify-content:space-between;color:var(--muted);font-size:13px"><span id="curTime">0:00</span><span id="durTime">0:00</span></div>
+
+            <div class="controls">
+              <button id="prev" class="big">⏮</button>
+              <button id="play" class="big">▶️</button>
+              <button id="next" class="big">⏭</button>
+              <input id="vol" type="range" min="0" max="1" step="0.01" value="0.5" style="flex:1" />
+            </div>
+
+            <div style="margin-top:8px;color:var(--muted);font-size:13px">Fila: <span id="queueCount">0</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
   <script type="module" src="ui.js"></script>
 </body>
 </html>
