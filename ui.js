@@ -300,7 +300,7 @@ function showAuthorChart() {
     type: 'bar',
     data: {
       labels,
-      datasets: [{ label: 'Livros', data, backgroundColor: colors }]
+      datasets: [{ label: 'Musicas', data, backgroundColor: colors }]
     },
     options: {
       indexAxis: 'y', // Barras horizontais
