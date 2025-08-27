@@ -151,23 +151,23 @@ function showAuthorChart() {
 
 //Feat: Davi
 function generateSongGridHTML(list) {
-    if(!list || list.length === 0) {
-        return '<div style="color:var(--muted)">Nenhuma música na coleção.</div>';
-    }
-    
-    const html = ['<div class="song-grid">'];
-    list.forEach((s,idx) => {
-      html.push(`<div class="card">
-        <div class="cover">${(s.title[0]||'M').toUpperCase()}</div>
-        <div class="meta"><h4>${escapeHtml(s.title)}</h4><p>${escapeHtml(s.artist)} • ${escapeHtml(s.album||'—')} — ${formatTime(s.duration)}</p></div>
-        <div style="display:flex;flex-direction:column;gap:6px">
-          <button onclick="playById('${s.id}')">▶</button>
-          <button onclick="enqueue('${s.id}')">＋</button>
-        </div>
-      </div>`);
-    });
-    html.push('</div>');
-    return html.join('\n');
+  if(!list || list.length === 0) {
+      return '<div style="color:var(--muted)">Nenhuma música na coleção.</div>';
+  }
+  
+  const html = ['<div class="song-grid">'];
+  list.forEach((s,idx) => {
+    html.push(`<div class="card">
+      <div class="cover">${(s.title[0]||'M').toUpperCase()}</div>
+      <div class="meta"><h4>${escapeHtml(s.title)}</h4><p>${escapeHtml(s.artist)} • ${escapeHtml(s.album||'—')} — ${formatTime(s.duration)}</p></div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button onclick="playById(${s.id})">▶</button>
+        <button onclick="enqueue(${s.id})">＋</button>
+      </div>
+    </div>`);
+  });
+  html.push('</div>');
+  return html.join('\n');
 }
 
 // Função para renderizar no output principal
@@ -182,8 +182,25 @@ function renderAuthorBooks(list, container) {
 
 function escapeHtml(t){ return (t||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;') }
 function formatTime(sec){ if(!sec) return '0:00'; const m=Math.floor(sec/60); const s=Math.floor(sec%60).toString().padStart(2,'0'); return `${m}:${s}` }
-function playById(id){ const idx = loadSongs().findIndex(s=>s.id===id); if(idx<0) return; queue = [ ...loadSongs().slice(idx), ...loadSongs().slice(0,idx) ]; currentIndex=0; playQueue(); }
-function enqueue(id){ queue.push(loadSongs().find(s=>s.id===id)); updateQueueInfo(); toast('Enfileirada') }
+
+function playById(id) {
+  const song = books.find(s => s.id === id);
+  if (!song || !song.spotifyId) return;
+
+  // Atualiza o painel do player com o embed do Spotify
+  const playerPanel = document.getElementById('playerPanel');
+  playerPanel.innerHTML = `
+    <iframe
+      id="spotifyPlayer"
+      src="https://open.spotify.com/embed/track/${song.spotifyId}"
+      width="100%"
+      height="220px"
+      frameborder="0"
+      allowtransparency="true"
+      allow="encrypted-media">
+    </iframe>
+  `;
+}
 
 const search = document.getElementById('globalSearch');
 
@@ -312,10 +329,17 @@ function showAuthorsGrid(letra = "all") {
   });
 }
 
-//spotify embed
-
-
 // ------------------------API--------------------
+async function fetchSpotifyCover(spotifyId, accessToken) {
+  const url = `https://api.spotify.com/v1/tracks/${spotifyId}`;
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  });
+  const data = await response.json();
+  // Pega a imagem maior disponível
+  return data.album.images[0]?.url || null;
+}
+
 async function getAuthorImage(author) {
   // Tenta buscar imagem na Wikipedia
   const wikiImg = await fetchWikiImage(author);
@@ -403,3 +427,6 @@ buttons.addEventListener('click', e => {
     if(action && actions[action]) actions[action](); // Executa a função correspondente
   }
 });
+
+window.playById = playById;
+window.enqueue = enqueue;
