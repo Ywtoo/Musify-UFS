@@ -1,31 +1,31 @@
-// Chave usada no localStorage para salvar os livros
-const STORAGE_KEY = "livraria::books"
+// Chave usada no localStorage para salvar as músicas
+const STORAGE_KEY = "Musify::songs"
 
 // ========================
 // Persistência (salvar, carregar, limpar os dados)
 // ========================
 
-// Carrega a lista de livros do localStorage
+// Carrega a lista de músicas do localStorage
 // Se não existir nada salvo, retorna um array vazio
-const loadBooks = () => {
+const loadsongs = () => {
   const data = localStorage.getItem(STORAGE_KEY)
   return data ? JSON.parse(data) : []
 }
 
-// Salva a lista de livros no localStorage (convertendo para texto JSON)
-const saveBooks = books =>
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(books))
+// Salva a lista de músicas no localStorage (convertendo para texto JSON)
+const savesongs = songs =>
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(songs))
 
-// Remove todos os livros do localStorage
-const clearBooks = () => {
+// Remove todas as músicas do localStorage
+const clearsongs = () => {
   localStorage.removeItem(STORAGE_KEY)
-  console.log("Livraria limpa.")
+  console.log("Musify limpa.")
 }
 
-// Restaura uma lista inicial de livros (pré-cadastrados)
+// Restaura uma lista inicial de músicas (pré-cadastradas)
 // Útil para resetar o sistema com dados de exemplo
-const resetBooks = () => {
-const books = [
+const resetsongs = () => {
+const songs = [
   { id: 1, title: "Bohemian Rhapsody", author: "Queen", year: 1975, genre: "Rock", artist: "Queen", album: "A Night at the Opera", duration: 354, spotifyId: "4u7EnebtmKWzUH433cf5Qv" },
   { id: 2, title: "Garota de Ipanema", author: "Tom Jobim & Vinicius de Moraes", year: 1962, genre: "Bossa Nova", artist: "Tom Jobim & Vinicius de Moraes", album: "Getz/Gilberto", duration: 201, spotifyId: "1V3oqAXt5Xiyj3RtHHLZ8O" },
   { id: 3, title: "Billie Jean", author: "Michael Jackson", year: 1982, genre: "Pop", artist: "Michael Jackson", album: "Thriller", duration: 294, spotifyId: "7J1uxwnxfQLu4APicE5Rnj" },
@@ -79,46 +79,46 @@ const books = [
 ]
 
 
-  saveBooks(books) // salva os livros no localStorage
+  savesongs(songs) 
   console.log("Livros iniciais salvos.")
-  return books              // retorna os livros
+  return songs            
 }
 
 // ========================
 // CRUD funcional (Create, Read, Update, Delete)
 // ========================
 
-// Adiciona um novo livro (retorna um novo array)
-const addBook = (books, newBook) => [...books, newBook]
+// Adiciona uma nova música (retorna um novo array)
+const addsong = (songs, newsong) => [...songs, newsong]
 
-// Atualiza um livro existente (caso encontre o id)
-const updateBook = (books, id, updates) =>
-  books.map(book => (book.id === id ? { ...book, ...updates } : book))
+// Atualiza uma música existente (caso encontre o id)
+const updatesong = (songs, id, updates) =>
+  songs.map(song => (song.id === id ? { ...song, ...updates } : song))
 
-// Remove um livro pelo id
-const deleteBook = (books, id) =>
-  books.filter(book => book.id !== id)
+// Remove uma música pelo id
+const deletesong = (songs, id) =>
+  songs.filter(song => song.id !== id)
 
 // ========================
 // Listagem e formatação
 // ========================
 
-// Lista os livros em formato de texto simples
-const listBooks = books =>
-  books.map(book => `${book.id} - "${book.title}" (${book.author}, ${book.year})`).join('\n')
+// Lista as músicas em formato de texto simples
+const listsongs = songs =>
+  songs.map(song => `${song.id} - "${song.title}" (${song.author}, ${song.year})`).join('\n')
 
-// Lista apenas os livros de um autor específico
-const listBooksByAuthor = (books, authorName) =>
-  books.filter(book => book.author === authorName)
+// Lista apenas as músicas de um autor específico
+const listsongsByAuthor = (songs, authorName) =>
+  songs.filter(song => song.author === authorName)
 
-// Listagem de cantores
-const listSingers = (books, letra) => {
-  const autores = books.map(book => book.author);
+// Retorna uma lista de todos os artistas/cantores únicos
+const listSingers = (songs, letra) => {
+  const autores = songs.map(song => song.author);
   const autoresUnicos = autores.filter((value, index, self) => recursiveIndexOf(self, value) === index);
   return autoresUnicos;
 }
 
-const listSingersByLetters = (books, letra) => {
+const listSingersByLetters = (songs, letra) => {
   if (!letra || toLower(letra) === "all") {
     return autoresUnicos;
   }
@@ -126,46 +126,46 @@ const listSingersByLetters = (books, letra) => {
 }
 
 
-// Conta quantos livros cada autor possui
-// Exemplo de retorno: { "Machado de Assis": 5, "Jorge Amado": 8 }
-const countBooksByAuthor = (books) =>
-  books.reduce((acc, book) => {
-    acc[book.author] = (acc[book.author] || 0) + 1
+// Conta quantas músicas cada autor possui
+// Exemplo de retorno: { "Queen": 5, "Michael Jackson": 8 }
+const countsongsByAuthor = (songs) =>
+  songs.reduce((acc, song) => {
+    acc[song.author] = (acc[song.author] || 0) + 1
     return acc
   }, {})
 
-// Permite formatar a lista de livros de forma flexível
-// Recebe uma função "formatFn" que define como cada livro deve aparecer
-const formatBooks = (books, formatFn) =>
-  books.map((book, index) => formatFn(book, index)).join('\n')
+// Permite formatar a lista de músicas de forma flexível
+// Recebe uma função "formatFn" que define como cada música deve aparecer
+const formatsongs = (songs, formatFn) =>
+  songs.map((song, index) => formatFn(song, index)).join('\n')
 
 // Formatação curta: apenas o título com numeração
-const shortFormat = (book, i) => `${i + 1}. ${book.title}`
+const shortFormat = (song, i) => `${i + 1}. ${song.title}`
 
 // Formatação completa: id, título, autor e ano
-const fullFormat = book =>
-  `${book.id} - "${book.title}" (${book.author}, ${book.year})`
+const fullFormat = song =>
+  `${song.id} - "${song.title}" (${song.author}, ${song.year})`
 
 // ========================
 // Transformações adicionais
 // ========================
 
-// Marca livros antigos com base em um ano de corte
+// Marca músicas antigas com base em um ano de corte
 // Adiciona a propriedade "old: true/false"
-const markOldBooks = (books, cutoffYear) =>
-  books.map(book => ({ ...book, old: book.year < cutoffYear }))
+const markOldsongs = (songs, cutoffYear) =>
+  songs.map(song => ({ ...song, old: song.year < cutoffYear }))
 
-// Adiciona uma categoria com base no autor (função fornecida pelo usuário)
-const addCategoryByAuthor = (books, classifyAuthorFn) =>
-  books.map(book => ({ ...book, category: classifyAuthorFn(book.author) }))
+// Adiciona uma categoria com base no artista (função fornecida pelo usuário)
+const addCategoryByAuthor = (songs, classifyAuthorFn) =>
+  songs.map(song => ({ ...song, category: classifyAuthorFn(song.author) }))
 
-// Aplica uma transformação nos títulos (ex: deixar tudo maiúsculo)
-const updateTitles = (books, transformFn) =>
-  books.map(book => ({ ...book, title: transformFn(book.title) }))
+// Aplica uma transformação nos títulos das músicas (ex: deixar tudo maiúsculo)
+const updateTitles = (songs, transformFn) =>
+  songs.map(song => ({ ...song, title: transformFn(song.title) }))
 
-// Permite renomear os campos de cada livro (ex: trocar "title" por "nome")
-const renameFields = (books, renamerFn) =>
-  books.map(book => renamerFn(book))
+// Permite renomear os campos de cada música (ex: trocar "title" por "nome")
+const renameFields = (songs, renamerFn) =>
+  songs.map(song => renamerFn(song))
 
 // ========================
 // Auxiliares
@@ -241,20 +241,20 @@ const renameFields = (books, renamerFn) =>
 	
 	
 // ========================
-// Exporta todas as funções como um objeto Livraria
+// Exporta todas as funções como um objeto Musify
 // Isso facilita o uso em outros arquivos (ex: ui.js)
 // ========================
-export const Livraria = {
+export const Musify = {
   // Persistência
-  loadBooks, saveBooks, resetBooks, clearBooks,
+  loadsongs, savesongs, resetsongs, clearsongs,
 
   // CRUD
-  addBook, updateBook, deleteBook,
+  addsong, updatesong, deletesong,
 
   // Exibição
-  listBooks, listBooksByAuthor, countBooksByAuthor,
-  formatBooks, shortFormat, fullFormat, listSingers, listSingersByLetters,
+  listsongs, listsongsByAuthor, countsongsByAuthor,
+  formatsongs, shortFormat, fullFormat, listSingers, listSingersByLetters,
 
   // Transformações
-  markOldBooks, addCategoryByAuthor, updateTitles, renameFields
+  markOldsongs, addCategoryByAuthor, updateTitles, renameFields
 }

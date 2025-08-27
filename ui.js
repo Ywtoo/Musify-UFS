@@ -1,14 +1,14 @@
-// Importa a classe/módulo principal que contém as funções de manipulação da livraria
-import { Livraria } from './lib.js';
+// Importa a classe/módulo principal que contém as funções de manipulação da Musify
+import { Musify } from './lib.js';
 
 // ===== Dados e elementos =====
 
 // Carrega os livros salvos no localStorage.
-// Se não houver nada salvo, reinicia com os livros padrão (resetBooks).
-let books = Livraria.loadBooks()
+// Se não houver nada salvo, reinicia com os livros padrão (resetsongs).
+let songs = Musify.loadsongs()
 
 // Garante que o estado atual seja salvo no localStorage
-Livraria.saveBooks(books);
+Musify.savesongs(songs);
 
 // Seleciona elementos HTML que serão manipulados pelo JavaScript
 const output = document.getElementById('output');   // Área de exibição de resultados
@@ -17,7 +17,7 @@ const buttons = document.getElementById('buttons'); // Div que contém os botõe
 
 // ===== Forms =====
 // Cada função abaixo cria dinamicamente um formulário e adiciona
-// eventos de "submit" para executar a ação correspondente na livraria.
+// eventos de "submit" para executar a ação correspondente na Musify.
 
 // --- Formulário de adicionar livro ---
 function showAddForm() {
@@ -34,14 +34,14 @@ function showAddForm() {
   // Quando o formulário é enviado
   document.getElementById('addForm').addEventListener('submit', e => {
     e.preventDefault(); // Evita recarregar a página
-    const newBook = {
+    const newsong = {
       id: Number(document.getElementById('addId').value),
       title: document.getElementById('addTitle').value,
       author: document.getElementById('addAuthor').value,
       year: Number(document.getElementById('addYear').value)
     };
-    books = Livraria.addBook(books, newBook); // Chama a função da lib
-    Livraria.saveBooks(books); // Salva no localStorage
+    songs = Musify.addsong(songs, newsong); // Chama a função da lib
+    Musify.savesongs(songs); // Salva no localStorage
     forms.innerHTML = ''; // Limpa o formulário
     output.textContent = 'Livro adicionado!';
   });
@@ -69,8 +69,8 @@ function showUpdateForm() {
     if(title) updates.title = title;
     if(author) updates.author = author;
     if(year) updates.year = Number(year);
-    books = Livraria.updateBook(books, id, updates); // Atualiza dados
-    Livraria.saveBooks(books);
+    songs = Musify.updatesong(songs, id, updates); // Atualiza dados
+    Musify.savesongs(songs);
     forms.innerHTML = '';
     output.textContent = 'Livro atualizado!';
   });
@@ -88,8 +88,8 @@ function showDeleteForm() {
   document.getElementById('deleteForm').addEventListener('submit', e => {
     e.preventDefault();
     const id = Number(document.getElementById('deleteId').value);
-    books = Livraria.deleteBook(books, id); // Remove
-    Livraria.saveBooks(books);
+    songs = Musify.deletesong(songs, id); // Remove
+    Musify.savesongs(songs);
     forms.innerHTML = '';
     output.textContent = 'Livro removido!';
   });
@@ -107,10 +107,10 @@ function showListByAuthorForm() {
   document.getElementById('authorForm').addEventListener('submit', e => {
     e.preventDefault();
     const author = document.getElementById('authorName').value;
-    const filtered = Livraria.listBooksByAuthor(books, author);
+    const filtered = Musify.listsongsByAuthor(songs, author);
     forms.innerHTML = '';
     // Mostra livros ou mensagem caso não encontre
-    output.textContent = filtered.length === 0 ? 'Nenhum livro encontrado.' : Livraria.listBooks(filtered);
+    output.textContent = filtered.length === 0 ? 'Nenhum livro encontrado.' : Musify.listsongs(filtered);
   });
 }
 
@@ -121,7 +121,7 @@ function showAuthorChart() {
   forms.innerHTML = '';
 
   // Conta livros agrupados por autor
-  const counts = Livraria.countBooksByAuthor(books);
+  const counts = Musify.countsongsByAuthor(songs);
 
   // Ordena do menor para o maior
   const sorted = Object.entries(counts).sort((a,b) => a[1]-b[1]);
@@ -157,18 +157,18 @@ async function generateSongGridHTML(list) {
 
   const html = ['<div class="song-grid">'];
 
-  // Busca imagens do álbum ou cantor no Wikipedia
+  // Busca capas no Wikipedia usando nome do álbum+artista ou apenas o artista
   const covers = await Promise.all(list.map(async s => {
-    // Tenta capa do álbum
+    // Tenta buscar capa do álbum usando combinação álbum+artista para melhor precisão
     if (s.album) {
       const albumQuery = s.album && s.artist ? `${s.album} ${s.artist}` : s.album;
       const albumImg = albumQuery ? await fetchWikiImage(albumQuery) : null;
       if (albumImg) return albumImg;
     }
-    // Tenta imagem do cantor
+    // Tenta buscar imagem do artista se não encontrou capa do álbum
     const artistImg = await fetchWikiImage(s.artist || s.author);
     if (artistImg) return artistImg;
-    // Se não achar, retorna null
+    // Retorna null se não encontrou nenhuma imagem
     return null;
   }));
 
@@ -178,7 +178,7 @@ async function generateSongGridHTML(list) {
       <div class="cover">
         ${coverImg
           ? `<img src="${coverImg}" class="cover-img" alt="Capa de ${escapeHtml(s.title)}">`
-          : (s.title[0] || 'M').toUpperCase()
+          : (s.title[0] || 'M').toUpperCase() // Usa a primeira letra do título se não encontrar imagem
         }
       </div>
       <div class="meta"><h4>${escapeHtml(s.title)}</h4><p>${escapeHtml(s.artist)} • ${escapeHtml(s.album || '—')} — ${formatTime(s.duration)}</p></div>
@@ -193,11 +193,11 @@ async function generateSongGridHTML(list) {
   return html.join('\n');
 }
 
-async function renderList(list = books) {
+async function renderList(list = songs) {
   output.innerHTML = await generateSongGridHTML(list);
 }
 
-async function renderAuthorBooks(list, container) {
+async function renderAuthorsongs(list, container) {
   container.innerHTML = await generateSongGridHTML(list);
 }
 
@@ -205,7 +205,7 @@ function escapeHtml(t){ return (t||'').replaceAll('&','&amp;').replaceAll('<','&
 function formatTime(sec){ if(!sec) return '0:00'; const m=Math.floor(sec/60); const s=Math.floor(sec%60).toString().padStart(2,'0'); return `${m}:${s}` }
 
 function playById(id) {
-  const song = books.find(s => s.id === id);
+  const song = songs.find(s => s.id === id);
   if (!song || !song.spotifyId) return;
 
   // Atualiza o painel do player com o embed do Spotify
@@ -229,11 +229,11 @@ search.addEventListener('input', () => {
     const q = search.value.trim().toLowerCase();
 
     if(!q){ 
-        renderList(books); // lista completa
+        renderList(songs); // lista completa
         return;
     }
 
-    const filtered = books.filter(s => {
+    const filtered = songs.filter(s => {
         const text = (s.title + s.artist + (s.album || '')).toLowerCase();
         return text.includes(q);
     });
@@ -268,7 +268,7 @@ function showAuthorsGrid(letra = "all") {
 
   // Código para filtrar autores (sem alterações)
   if (!allAuthorsCache) {
-    const unsorted = Livraria.listSingers(books);
+    const unsorted = Musify.listSingers(songs);
     allAuthorsCache = [...unsorted].sort((a, b) => {
       const cleanA = a.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
       const cleanB = b.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -313,7 +313,7 @@ function showAuthorsGrid(letra = "all") {
 
   div.addEventListener('click', async () => {
     // Filtrar músicas pelo autor selecionado
-    const authorBooks = books.filter(b => b.author === author);
+    const authorsongs = songs.filter(b => b.author === author);
 
     output.innerHTML = '';
 
@@ -350,7 +350,7 @@ function showAuthorsGrid(letra = "all") {
     songsContainer.id = 'songsContainer';
     output.appendChild(songsContainer);
 
-    renderAuthorBooks(authorBooks, songsContainer);
+    renderAuthorsongs(authorsongs, songsContainer);
   });
 
   grid.appendChild(div);
@@ -358,16 +358,6 @@ function showAuthorsGrid(letra = "all") {
 }
 
 // ------------------------API--------------------
-async function fetchSpotifyCover(spotifyId, accessToken) {
-  const url = `https://api.spotify.com/v1/tracks/${spotifyId}`;
-  const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${accessToken}` }
-  });
-  const data = await response.json();
-  // Pega a imagem maior disponível
-  return data.album.images[0]?.url || null;
-}
-
 async function getAuthorImage(author) {
   // Tenta buscar imagem na Wikipedia
   const wikiImg = await fetchWikiImage(author);
@@ -378,8 +368,8 @@ async function getAuthorImage(author) {
   if (lastFmImg) return lastFmImg;
 
   // Usa imagem local/padrão se não encontrar nas APIs
-  const book = books.find(b => b.author === author && typeof b.imagem === 'string' && b.imagem.trim() !== '');
-  return book && book.imagem ? book.imagem : 'imagens/BohemiaRhapsody.jpg';
+  const song = songs.find(b => b.author === author && typeof b.imagem === 'string' && b.imagem.trim() !== '');
+  return song && song.imagem ? song.imagem : 'imagens/BohemiaRhapsody.jpg';
 }
 
 async function fetchLastFmArtist(artistName) {
@@ -432,15 +422,15 @@ async function fetchWikiSummary(artistName) {
 // Dicionário que associa cada ação a uma função
 const actions = {
   init: () => {
-      books = Livraria.resetBooks();
-      renderList(books);
+      songs = Musify.resetsongs();
+      renderList(songs);
       forms.innerHTML = "";
     },
-  list: () => { forms.innerHTML = ''; renderList(books); },
+  list: () => { forms.innerHTML = ''; renderList(songs); },
   add: () => showAddForm(),
   update: () => showUpdateForm(),
   delete: () => showDeleteForm(),
-  clear: () => { forms.innerHTML = ''; Livraria.clearBooks(); books=[]; output.textContent='Livraria esvaziada.'; },
+  clear: () => { forms.innerHTML = ''; Musify.clearsongs(); songs=[]; output.textContent='Musify esvaziada.'; },
   listByAuthor: () => showListByAuthorForm(),
   browseByAuthor: () => showAuthorsGrid(),
   countByAuthor: () => showAuthorChart(),
