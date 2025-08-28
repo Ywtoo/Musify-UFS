@@ -55,7 +55,18 @@ body {
   flex-direction: column;
   gap: 16px;
   align-items: stretch;
+  z-index: 1000; /* Garante que o menu flutue sobre o conteúdo */
+  transition: transform 0.4s ease-in-out; /* Animação de deslize */
+  transform: translateX(-232px); 
+  border-right: 2px solid var(--accent);
 }
+
+#sidebar:hover {
+  transform: translateX(0); /* Traz o menu de volta à posição original */
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5); /* Sombra para dar profundidade */
+  border-right-color: transparent; /* Esconde a dica visual */
+}
+
 #sidebar h1 {
   font-family: 'Bebas Neue', sans-serif;
   margin: 0;

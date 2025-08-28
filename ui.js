@@ -402,7 +402,6 @@ async function generateSongGridHTML(list) {
     <div class="meta"><h4>${escapeHtml(s.title)}</h4><p>${escapeHtml(s.artist)} • ${escapeHtml(s.album || '—')} — ${formatTime(s.duration)}</p></div>
     <div style="display:flex;flex-direction:column;gap:6px">
     <button onclick="playItunesPreview('${escapeHtml(s.title)} ${escapeHtml(s.artist)}')">▶</button>
-      <button onclick="enqueue(${s.id})">＋</button>
       <button onclick="toggleFavoriteHandler(${s.id})" style="color:${s.favorite ? 'red' : 'inherit'}">${isFavorite}</button>
       <button onclick="showAddToPlaylistDialog(${s.id})">📋</button>
     </div>
