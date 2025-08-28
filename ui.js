@@ -261,25 +261,6 @@ function showDeleteForm() {
   });
 }
 
-// --- Formulário para listar livros por autor ---
-function showListByArtistForm() {
-  forms.innerHTML = `
-    <h3>Listar livros por autor</h3>
-    <form id="artistForm">
-      <input type="text" id="artistName" placeholder="Nome do autor" required />
-      <button type="submit">Listar</button>
-    </form>
-  `;
-  document.getElementById('artistForm').addEventListener('submit', e => {
-    e.preventDefault();
-    const artist = document.getElementById('artistName').value;
-    const filtered = Musify.listSongsByArtist(songs, artist);
-    forms.innerHTML = '';
-    // Mostra livros ou mensagem caso não encontre
-    output.textContent = filtered.length === 0 ? 'Nenhum livro encontrado.' : Musify.listSongs(filtered);
-  });
-}
-
 function action_add() {
   forms.innerHTML = formAddHtml();
   attachAddHandlers();
@@ -901,7 +882,6 @@ const actions = {
   update: () => { showUpdateForm(); },
   delete: () => showDeleteForm(),
   clear: () => { forms.innerHTML = ''; Musify.clearSongs(); songs = []; output.textContent = 'Musify esvaziada.'; },
-  listByArtist: () => showListByArtistForm(),
   browseByArtist: () => showArtistsGrid(),
   countByArtist: () => showArtistChart(),
   favorites: () => showFavorites(),
