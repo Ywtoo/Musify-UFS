@@ -42,6 +42,11 @@ function warningBallon(message) {
   }, 3000);
 }
 
+//timer para não fazer muitas chamadas API ao mesmo tempo
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // ===== Forms =====
 // Cada função abaixo cria dinamicamente um formulário e adiciona
 // eventos de "submit" para executar a ação correspondente na Musify.
@@ -367,11 +372,11 @@ async function generateSongGridHTML(list) {
       const albumCover = await getItunesAlbumImage(albumQuery);
       if (albumCover) return albumCover;
     }
-    
+
     // 2. Se não encontrou pelo álbum, tenta pela música
     const songCover = await getItunesSongImage(s.title, s.artist);
     if (songCover) return songCover;
-    
+
     // 3. Não usa imagem de artista para capas de músicas
     return null;
   }));
@@ -449,35 +454,40 @@ function showArtistsGrid(letra = "all") {
 
   const grid = document.getElementById('artistsGrid');
   grid.innerHTML = '';
-  
+
   artists.forEach(async artist => {
-  const div = document.createElement('div');
-  div.className = 'artist-card';
+    const div = document.createElement('div');
+    div.className = 'artist-card';
 
-  // Busca imagem especificamente da Wikipedia para artistas
-  let imgUrl = await fetchBestImage(artist, true);
+    // Busca imagem especificamente da Wikipedia para artistas
+    let imgUrl = await fetchBestImage(artist, true);
 
-  // Cria o elemento visual para a capa/avatar do artista
-  let cover;
-  if (imgUrl) {
-    cover = document.createElement('img');
-    cover.alt = artist;
-    cover.src = imgUrl;
-    cover.className = 'artist-img';
-    // Adiciona tratamento de erro para garantir uma fallback se a imagem falhar
-    cover.onerror = () => {
-      div.removeChild(cover);
-      const fallback = document.createElement('div');
-      fallback.className = 'cover artist-img';
-      fallback.textContent = (artist[0] || 'A').toUpperCase();
-      div.prepend(fallback);
-    };
-  } else {
-    // Se não encontrou imagem, cria um elemento com a inicial do artista
-    cover = document.createElement('div');
-    cover.className = 'cover artist-img';
-    cover.textContent = (artist[0] || 'A').toUpperCase();
-  }
+    let cover;
+    if (Array.isArray(imgUrl) && imgUrl.length === 2) {
+      // Se vier duas imagens, mostra lado a lado
+      cover = document.createElement('div');
+      cover.className = 'cover artist-img double-img';
+      cover.innerHTML = `
+    <img src="${imgUrl[0]}" class="half-img" alt="Artista 1">
+    <img src="${imgUrl[1]}" class="half-img" alt="Artista 2">
+  `;
+    } else if (imgUrl) {
+      cover = document.createElement('img');
+      cover.alt = artist;
+      cover.src = imgUrl;
+      cover.className = 'artist-img';
+      cover.onerror = () => {
+        div.removeChild(cover);
+        const fallback = document.createElement('div');
+        fallback.className = 'cover artist-img';
+        fallback.textContent = (artist[0] || 'A').toUpperCase();
+        div.prepend(fallback);
+      };
+    } else {
+      cover = document.createElement('div');
+      cover.className = 'cover artist-img';
+      cover.textContent = (artist[0] || 'A').toUpperCase();
+    }
 
     // Cria o elemento para exibir o nome do artista
     const name = document.createElement('div');
@@ -529,7 +539,7 @@ function showArtistsGrid(letra = "all") {
 
     grid.appendChild(div);
   });
-} 
+}
 
 function showArtistChart() {
   output.innerHTML = `<canvas id="artistChart"></canvas>`;
@@ -567,24 +577,24 @@ async function fetchApi(url) {
     if (imageCache.has(url)) {
       return imageCache.get(url);
     }
-    
-    const response = await fetch(url, { 
+
+    const response = await fetch(url, {
       mode: 'cors',
       headers: {
         'Accept': 'application/json'
       }
     });
-    
+
     if (!response.ok) {
       throw new Error(`Erro na API: ${response.status}`);
     }
-    
+
     const data = await response.json();
-    imageCache.set(url, data); 
+    imageCache.set(url, data);
     return data;
   } catch (error) {
     console.error(`Erro ao buscar dados de ${url}:`, error);
-    return {}; 
+    return {};
   }
 }
 
@@ -617,13 +627,43 @@ async function getItunesSongImage(title, artist) {
 }
 
 async function getWikiImage(query) {
-  const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(query)}&prop=pageimages&format=json&pithumbsize=300&origin=*`;
-  const data = await fetchApi(url);
-  const pages = data.query.pages;
-  for (const pageId in pages) {
-    if (pages[pageId].thumbnail && pages[pageId].thumbnail.source) {
-      return pages[pageId].thumbnail.source;
+  const cleanQuery = query.replace(/^(os|as|the)\s+/i, '').trim();
+  // Se for colaboração, busca para cada artista
+  if (query.includes('&')) {
+    const parts = query.split('&').map(p => p.trim());
+    const images = [];
+    for (const part of parts) {
+      const img = await getWikiImage(part);
+      if (img) images.push(img);
+      await sleep(200);
     }
+    return images.length > 0 ? images : null;
+  }
+
+  const andQuery = cleanQuery.replace(/&/g, 'and');
+  const noSpaceQuery = cleanQuery.replace(/\s+/g, '');
+  const asciiQuery = cleanQuery.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const variants = [
+    query, cleanQuery, andQuery, noSpaceQuery, asciiQuery,
+    `${cleanQuery} (band)`, `${cleanQuery} (group)`, `${cleanQuery} (duo)`,
+    `${cleanQuery} (musician)`, `${cleanQuery} (singer)`, `${cleanQuery} (artist)`,
+    `${cleanQuery} (rapper)`, `${cleanQuery} (composer)`, `${cleanQuery} (producer)`,
+    `${cleanQuery} (DJ)`, `${andQuery} (band)`, `${andQuery} (group)`, `${andQuery} (duo)`,
+    `${asciiQuery} (band)`, `${asciiQuery} (group)`, `${asciiQuery} (duo)`
+  ];
+
+  for (const variant of variants) {
+    const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(variant)}&prop=pageimages&format=json&pithumbsize=300&origin=*`;
+    const data = await fetchApi(url);
+    if (data.query && data.query.pages) {
+      const pages = data.query.pages;
+      for (const pageId in pages) {
+        if (pages[pageId].thumbnail && pages[pageId].thumbnail.source) {
+          return pages[pageId].thumbnail.source;
+        }
+      }
+    }
+    await sleep(200);
   }
   return null;
 }
@@ -654,7 +694,7 @@ async function fetchBestImage(query, isArtist = false) {
       } catch (e) {
         console.log("Erro ao buscar imagem da Wikipedia:", e);
       }
-      
+
       try {
         // 2. Depois tenta no Last.fm como fallback para artistas
         const lastFmImg = await getLastFmArtistImage(query);
@@ -662,7 +702,7 @@ async function fetchBestImage(query, isArtist = false) {
       } catch (e) {
         console.log("Erro ao buscar imagem no Last.fm:", e);
       }
-    } 
+    }
     // Para álbuns e músicas, prioriza o iTunes
     else {
       try {
@@ -673,7 +713,7 @@ async function fetchBestImage(query, isArtist = false) {
         console.log("Erro ao buscar imagem do álbum no iTunes:", e);
       }
     }
-    
+
     // Return null if no image found
     return null;
   } catch (error) {
@@ -686,12 +726,12 @@ async function fetchBestImage(query, isArtist = false) {
 async function fetchArtistInfo(artist) {
   // Busca imagem específica na Wikipedia para artistas
   const imgUrl = await fetchBestImage(artist, true);
-  
+
   // Busca dados do Last.fm
   const apiKey = '254828efebce648b8c698471e2cd36d0';
   const url = `https://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=${encodeURIComponent(artist)}&api_key=${apiKey}&format=json&autocorrect=1`;
   const data = await fetchApi(url);
-  
+
   return {
     imgUrl,
     url: data.artist?.url,
