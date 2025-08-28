@@ -73,8 +73,32 @@ body {
   text-transform: uppercase;
   letter-spacing: 4px;
   color: var(--gold);
-  font-size: 28px;
+  font-size: 50px;
   text-align: center;
+    /* 1. Define um gradiente como fundo. Este será o nosso "brilho". */
+  background: linear-gradient(
+    90deg, 
+    var(--gold) 0%, 
+    #ffffff 50%, 
+    var(--gold) 100%
+  );
+
+  /* 2. Aumenta o tamanho do fundo para que o gradiente possa se mover. */
+  background-size: 200% auto;
+
+  /* 3. A mágica acontece aqui: o fundo é recortado para o formato do texto. */
+  -webkit-background-clip: text;
+  background-clip: text;
+
+  /* 4. O texto fica transparente para revelar o fundo com gradiente. */
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+
+  /* 5. Aplica a animação que criamos. */
+  animation: shimmer-effect 4s linear infinite;
+
+  /* 6. (Opcional) Adiciona um brilho suave e estático ao redor do texto */
+  text-shadow: 0 0 10px rgba(216, 186, 98, 0.2); 
 }
 #buttons {
   display: flex;
@@ -113,12 +137,16 @@ button[data-action]:active {
   display: flex;
   flex-direction: column;
   gap: 18px;
+    position: sticky;
+  top: 18px;
 }
 .topbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
+    position: sticky;
+  top: 18px;
 }
 .search {
   flex: 1;
@@ -204,8 +232,13 @@ button[data-action]:active {
 /* ===========================
    FORMULÁRIOS
 =========================== */
+forms {
+  position: sticky;
+}
+
 form {
   margin-top: 8px;
+  position: sticky;
 }
 .form {
   display: grid;
@@ -214,6 +247,7 @@ form {
   background: #101010;
   padding: 12px;
   border-radius: 10px;
+  position: sticky;
 }
 .form input,
 .form select {
@@ -222,6 +256,7 @@ form {
   border: 0;
   background: #141414;
   color: #fff;
+  position: sticky;
 }
 .form textarea {
   grid-column: 1/-1;
@@ -229,11 +264,13 @@ form {
   border-radius: 8px;
   background: #141414;
   color: #fff;
+  position: sticky;
 }
 .form.actions {
   grid-column: 1/-1;
   display: flex;
   gap: 8px;
+  position: sticky;
 }
 
 /* ===========================
@@ -558,6 +595,18 @@ footer {
   #sidebar { display: none; }
   #playerPanel { display: none; }
 }
+  @keyframes shimmer-effect {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+
+}
+
+
+
 </style>
 </head>
 <body>
@@ -586,7 +635,7 @@ footer {
         <div style="width:150px;text-align:right;color:var(--muted)"></div>
       </div>
 
-      <div id="forms"></div>
+      <div id="forms" class="forms"></div>
 
       <div class="content">
         <div id="library">
