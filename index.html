@@ -145,7 +145,7 @@ button[data-action]:active {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-    position: sticky;
+  position: sticky;
   top: 18px;
 }
 .search {
@@ -181,7 +181,15 @@ button[data-action]:active {
   padding: 16px;
   border-radius: 12px;
   position: sticky;
-  top: 18px;
+  /* Increase this value to have more space at the top when scrolled */
+  top: 28px; 
+  /* Add a transition for smooth movement */
+  transition: top 0.3s ease;
+}
+
+/* When scrolling happens, detect it via this selector and adjust the spacing */
+html:not(:only-child) #playerPanel {
+  top: 50px;
 }
 
 /* ===========================
@@ -593,7 +601,13 @@ footer {
 =========================== */
 @media (max-width:900px) {
   #sidebar { display: none; }
-  #playerPanel { display: none; }
+  #playerPanel { display: none;  }
+}
+
+@media (min-height: 10px) {
+  #playerPanel {
+    top: 95px; /* This gives the panel more room at the top */
+  }
 }
   @keyframes shimmer-effect {
   0% {
