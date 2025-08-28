@@ -1,5 +1,11 @@
 import { Musify } from './lib.js';
 
+const FAVOARITES_KEY = 'Musify::favorites'
+const PLAYLISTS_KEY = 'Musify::playlists'
+
+//Carrega Playlists salvas
+let playlists = JSON.parse(localStorage.getItem(PLAYLISTS_KEY)) || []
+
 // ===== Dados e elementos =====
 
 let allArtistsCache = null;
@@ -383,7 +389,9 @@ async function generateSongGridHTML(list) {
 
   list.forEach((s, idx) => {
     const coverImg = covers[idx];
+    const isFavorite = s.favorite ? '❤' : '🤍';
     s.coverImg = coverImg;
+
     html.push(`<div class="card">
     <div class="cover">
       ${coverImg
@@ -395,6 +403,8 @@ async function generateSongGridHTML(list) {
     <div style="display:flex;flex-direction:column;gap:6px">
     <button onclick="playItunesPreview('${escapeHtml(s.title)} ${escapeHtml(s.artist)}')">▶</button>
       <button onclick="enqueue(${s.id})">＋</button>
+      <button onclick="toggleFavoriteHandler(${s.id})" style="color:${s.favorite ? 'red' : 'inherit'}">${isFavorite}</button>
+      <button onclick="showAddToPlaylistDialog(${s.id})">📋</button>
     </div>
     <div id="itunes-preview-${s.id}"></div>
   </div>`);
@@ -569,6 +579,137 @@ function showArtistChart() {
   });
 }
 
+// Função para favoritar/desfavoritar música
+function toggleFavoriteHandler(songId) {
+  songs = Musify.toggleFavorite(songs, songId)
+  Musify.saveSongs(songs)
+  renderList(songs)
+  warningBallon('Favoritos atualizados!')
+}
+
+// Função para exibir músicas favoritas
+function showFavorites() {
+  const favorites = Musify.getFavoriteSongs(songs)
+  if (favorites.length === 0) {
+    output.innerHTML = '<div style="color:var(--muted);text-align:center;padding:40px">Nenhuma música favoritada ainda.</div>'
+  } else {
+    renderList(favorites)
+  }
+  forms.innerHTML = ''
+}
+
+// Funções para gerenciar playlists
+function showPlaylistsManager() {
+  output.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h3>Suas Playlists</h3>
+      <button onclick="showCreatePlaylistForm()" style="padding:8px 16px">+ Nova Playlist</button>
+    </div>
+    <div id="playlistsContainer"></div>
+  `
+  
+  renderPlaylists()
+  forms.innerHTML = ''
+}
+
+function renderPlaylists() {
+  const container = document.getElementById('playlistsContainer')
+  if (!container) return
+  
+  if (playlists.length === 0) {
+    container.innerHTML = '<div style="color:var(--muted);text-align:center;padding:40px">Nenhuma playlist criada ainda.</div>'
+    return
+  }
+  
+  container.innerHTML = playlists.map(playlist => `
+    <div class="card" style="margin-bottom:12px">
+      <div style="flex:1">
+        <h4>${escapeHtml(playlist.name)}</h4>
+        <p>${playlist.songs.length} música(s) • Criada em ${new Date(playlist.created).toLocaleDateString()}</p>
+      </div>
+      <div style="display:flex;gap:6px;flex-direction:column">
+        <button onclick="viewPlaylist(${playlist.id})">👀 Ver</button>
+        <button onclick="deletePlaylistHandler(${playlist.id})">🗑 Excluir</button>
+      </div>
+    </div>
+  `).join('')
+}
+
+function createPlaylistHandler() {
+  const name = document.getElementById('playlistName').value.trim()
+  if (!name) {
+    alert('Digite um nome para a playlist')
+    return
+  }
+  
+  playlists = Musify.createPlaylist(playlists, name)
+  localStorage.setItem(PLAYLISTS_KEY, JSON.stringify(playlists))
+  renderPlaylists()
+  forms.innerHTML = ''
+  warningBallon('Playlist criada!')
+}
+
+function deletePlaylistHandler(playlistId) {
+  if (confirm('Tem certeza que deseja excluir esta playlist?')) {
+    playlists = Musify.deletePlaylist(playlists, playlistId)
+    localStorage.setItem(PLAYLISTS_KEY, JSON.stringify(playlists))
+    renderPlaylists()
+    warningBallon('Playlist excluída!')
+  }
+}
+
+function viewPlaylist(playlistId) {
+  const playlistSongs = Musify.getPlaylistSongs(playlists, playlistId, songs)
+  if (playlistSongs.length === 0) {
+    output.innerHTML = '<div style="color:var(--muted);text-align:center;padding:40px">Playlist vazia.</div>'
+  } else {
+    renderList(playlistSongs)
+  }
+  forms.innerHTML = ''
+}
+
+function showAddToPlaylistDialog(songId) {
+  if (playlists.length === 0) {
+    alert('Crie uma playlist primeiro!')
+    showPlaylistsManager()
+    return
+  }
+  
+  forms.innerHTML = `
+    <div class="form">
+      <h3>Adicionar à Playlist</h3>
+      <select id="playlistSelect">
+        ${playlists.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('')}
+      </select>
+      <div class="actions">
+        <button onclick="addToPlaylistHandler(${songId})">Adicionar</button>
+        <button onclick="forms.innerHTML=''">Cancelar</button>
+      </div>
+    </div>
+  `
+}
+
+function addToPlaylistHandler(songId) {
+  const playlistId = parseInt(document.getElementById('playlistSelect').value)
+  playlists = Musify.addSongToPlaylist(playlists, playlistId, songId)
+  localStorage.setItem(PLAYLISTS_KEY, JSON.stringify(playlists))
+  forms.innerHTML = ''
+  warningBallon('Música adicionada à playlist!')
+}
+
+function showCreatePlaylistForm() {
+  forms.innerHTML = `
+    <div class="form">
+      <h3>Nova Playlist</h3>
+      <input id="playlistName" placeholder="Nome da playlist" />
+      <div class="actions">
+        <button onclick="createPlaylistHandler()">Criar</button>
+        <button onclick="forms.innerHTML=''">Cancelar</button>
+      </div>
+    </div>
+  `
+}
+
 // =================== API =================
 // Função genérica para buscar dados de API
 async function fetchApi(url) {
@@ -595,6 +736,15 @@ async function fetchApi(url) {
   } catch (error) {
     console.error(`Erro ao buscar dados de ${url}:`, error);
     return {};
+  }
+}
+
+function enqueue(songId) {
+  const song = songs.find(s => s.id === songId)
+  if (song) {
+    queue.push(song)
+    queueCount.textContent = queue.length
+    warningBallon('Música adicionada à fila!')
   }
 }
 
@@ -755,6 +905,8 @@ const actions = {
   listByArtist: () => showListByArtistForm(),
   browseByArtist: () => showArtistsGrid(),
   countByArtist: () => showArtistChart(),
+  favorites: () => showFavorites(),
+  playlists: () => showPlaylistsManager(),
   exit: () => { forms.innerHTML = ''; output.textContent = 'Bye, bye! :)'; }
 };
 
@@ -784,6 +936,14 @@ search.addEventListener('input', () => {
 });
 
 // ===== PLAYER PREVIEW =====
+window.deletePlaylistHandler = deletePlaylistHandler
+window.viewPlaylist = viewPlaylist
+window.addToPlaylistHandler = addToPlaylistHandler
+window.createPlaylistHandler = createPlaylistHandler
+window.showCreatePlaylistForm = showCreatePlaylistForm
+window.toggleFavoriteHandler = toggleFavoriteHandler
+window.showAddToPlaylistDialog = showAddToPlaylistDialog
+window.enqueue = enqueue
 window.playItunesPreview = async function (query) {
   const previewUrl = await fetchItunesPreview(query);
   const song = songs.find(s => `${s.title} ${s.artist}` === query);

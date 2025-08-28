@@ -92,11 +92,11 @@ const resetSongs = () => {
 const addSong = (songs, newsong) => [...songs, newsong]
 
 // Atualiza uma música existente (caso encontre o id)
-const updatesong = (songs, id, updates) =>
+const updateSong = (songs, id, updates) =>
   songs.map(song => (song.id === id ? { ...song, ...updates } : song))
 
 // Remove uma música pelo id
-const deletesong = (songs, id) =>
+const deleteSong = (songs, id) =>
   songs.filter(song => song.id !== id)
 
 // ========================
@@ -166,6 +166,53 @@ const updateTitles = (songs, transformFn) =>
 // Permite renomear os campos de cada música (ex: trocar "title" por "nome")
 const renameFields = (songs, renamerFn) =>
   songs.map(song => renamerFn(song))
+
+// ========================
+// Favoritos e Playlist
+// ========================
+
+// Alternar Favoritos
+const toggleFavorite = (songs, id) =>
+   songs.map(song => song.id === id ? { ...song, favorite: !song.favorite } : song);
+
+//Pega os Favoritos
+const getFavoriteSongs = songs => songs.filter(song => song.favorite);
+
+// Cria nova Plylist
+const createPlaylist = (playlists, name) => { 
+  const newPlaylist = {
+    id: Date.now(), name, songs: [], created: new Date().toISOString() 
+  }
+  return [...playlists, newPlaylist]
+}
+
+// Adciona músicas na Plylist//
+const addSongToPlaylist = (playlists, playlistId, songId) =>
+  playlists.map(playlist =>
+    playlist.id === playlistId
+      ? { ...playlist, songs: [...playlist.songs, songId] }
+      : playlist
+  )
+
+// Remove músicas da Plylist//
+const removeFromPlaylist = (playlists, playlistId, songId) =>
+  playlists.map(playlist =>
+
+playlist.id === playlistId
+    ? { ...playlist, songs: playlist.songs.filter(id => id !== songId) }
+  : playlist
+)
+
+// Deleta Playlist//
+const deletePlaylist = (playlists, playlistId) =>
+  playlists.filter(playlist => playlist.id !== playlistId)
+
+// Pega as músicas de uma Plylist//
+const getPlaylistSongs = (playlists, playlistId, allsongs) => {
+  const playlist = playlists.find(p => p.id === playlistId)
+  if (!playlist) return []
+  return allsongs.filter(song => playlist.songs.includes(song.id))
+}
 
 // ========================
 // Auxiliares
@@ -246,11 +293,16 @@ const toLower = (texto, inicio = 0, fim = tamanho(texto), resultado = "") => {
 // Isso facilita o uso em outros arquivos (ex: ui.js)
 // ========================
 export const Musify = {
+
+  // Sistema de favoritos e playlist
+  toggleFavorite, getFavoriteSongs, createPlaylist, addSongToPlaylist,
+  removeFromPlaylist, deletePlaylist, getPlaylistSongs,
+
   // Persistência
   loadSongs, saveSongs, resetSongs, clearSongs,
 
   // CRUD
-  addSong, updatesong, deletesong,
+  addSong, updateSong, deleteSong,
 
   // Exibição
   listsongs, listsongsByArtist, countsongsByArtist,
