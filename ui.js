@@ -3,6 +3,7 @@ import { Musify } from './lib.js';
 // ===== Dados e elementos =====
 
 let allArtistsCache = null;
+const imageCache = new Map();
 let songs = Musify.loadSongs()
 Musify.saveSongs(songs);
 
@@ -358,21 +359,20 @@ async function generateSongGridHTML(list) {
 
   const html = ['<div class="song-grid">'];
 
-  // Busca capas: iTunes (álbum+artista) > Wikipedia (álbum+artista) > Wikipedia (artista)
+  // Busca capas prioritariamente no iTunes para álbuns
   const covers = await Promise.all(list.map(async s => {
-    // 1. Tenta buscar capa do álbum no iTunes
+    // 1. Se tiver álbum, tenta buscar pela imagem do álbum primeiro (prioridade)
     if (s.album) {
-      const albumQuery = s.album && s.artist ? `${s.album} ${s.artist}` : s.album;
-      const itunesImg = albumQuery ? await fetchBestImage(albumQuery) : null;
-      if (itunesImg) return itunesImg;
-      // 2. Tenta buscar capa do álbum na Wikipedia
-      const wikiAlbumImg = albumQuery ? await fetchBestImage(albumQuery) : null;
-      if (wikiAlbumImg) return wikiAlbumImg;
+      const albumQuery = `${s.album} ${s.artist}`;
+      const albumCover = await getItunesAlbumImage(albumQuery);
+      if (albumCover) return albumCover;
     }
-    // 3. Tenta buscar imagem do artista na Wikipedia
-    const wikiArtistImg = await fetchBestImage(s.artist || s.artist);
-    if (wikiArtistImg) return wikiArtistImg;
-    // 4. Retorna null se não encontrou nenhuma imagem
+    
+    // 2. Se não encontrou pelo álbum, tenta pela música
+    const songCover = await getItunesSongImage(s.title, s.artist);
+    if (songCover) return songCover;
+    
+    // 3. Não usa imagem de artista para capas de músicas
     return null;
   }));
 
@@ -382,8 +382,8 @@ async function generateSongGridHTML(list) {
     html.push(`<div class="card">
     <div class="cover">
       ${coverImg
-        ? `<img src="${coverImg}" class="cover-img" alt="Capa de ${escapeHtml(s.title)}">`
-        : (s.title[0] || 'M').toUpperCase()
+        ? `<img src="${coverImg}" class="cover-img" alt="Capa de ${escapeHtml(s.title)}" loading="lazy">`
+        : `<div class="cover-placeholder">${(s.title[0] || 'M').toUpperCase()}</div>`
       }
     </div>
     <div class="meta"><h4>${escapeHtml(s.title)}</h4><p>${escapeHtml(s.artist)} • ${escapeHtml(s.album || '—')} — ${formatTime(s.duration)}</p></div>
@@ -451,24 +451,33 @@ function showArtistsGrid(letra = "all") {
   grid.innerHTML = '';
   
   artists.forEach(async artist => {
-    const div = document.createElement('div');
-    div.className = 'artist-card';
+  const div = document.createElement('div');
+  div.className = 'artist-card';
 
-    let imgUrl = await fetchBestImage(artist);
+  // Busca imagem especificamente da Wikipedia para artistas
+  let imgUrl = await fetchBestImage(artist, true);
 
-    // Cria o elemento visual para a capa/avatar do artista
-    let cover;
-    if (imgUrl && !imgUrl.endsWith('BohemiaRhapsody.jpg')) {
-      cover = document.createElement('img');
-      cover.alt = artist;
-      cover.src = imgUrl;
-      cover.className = 'artist-img';
-    } else {
-      // Se não encontrou imagem, cria um elemento com a inicial do artista
-      cover = document.createElement('div');
-      cover.className = 'cover artist-img';
-      cover.textContent = (artist[0] || 'A').toUpperCase();
-    }
+  // Cria o elemento visual para a capa/avatar do artista
+  let cover;
+  if (imgUrl) {
+    cover = document.createElement('img');
+    cover.alt = artist;
+    cover.src = imgUrl;
+    cover.className = 'artist-img';
+    // Adiciona tratamento de erro para garantir uma fallback se a imagem falhar
+    cover.onerror = () => {
+      div.removeChild(cover);
+      const fallback = document.createElement('div');
+      fallback.className = 'cover artist-img';
+      fallback.textContent = (artist[0] || 'A').toUpperCase();
+      div.prepend(fallback);
+    };
+  } else {
+    // Se não encontrou imagem, cria um elemento com a inicial do artista
+    cover = document.createElement('div');
+    cover.className = 'cover artist-img';
+    cover.textContent = (artist[0] || 'A').toUpperCase();
+  }
 
     // Cria o elemento para exibir o nome do artista
     const name = document.createElement('div');
@@ -553,8 +562,30 @@ function showArtistChart() {
 // =================== API =================
 // Função genérica para buscar dados de API
 async function fetchApi(url) {
-  const response = await fetch(url);
-  return await response.json();
+  try {
+    // Verifica se a URL já está no cache
+    if (imageCache.has(url)) {
+      return imageCache.get(url);
+    }
+    
+    const response = await fetch(url, { 
+      mode: 'cors',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Erro na API: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    imageCache.set(url, data); 
+    return data;
+  } catch (error) {
+    console.error(`Erro ao buscar dados de ${url}:`, error);
+    return {}; 
+  }
 }
 
 async function fetchItunesPreview(query) {
@@ -568,7 +599,19 @@ async function getItunesAlbumImage(query) {
   const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
   const data = await fetchApi(url);
   if (data.results && data.results.length > 0) {
-    return data.results[0].artworkUrl100.replace('100x100bb', '300x300bb');
+    // Get higher resolution image by replacing the size
+    return data.results[0].artworkUrl100.replace('100x100bb', '600x600bb');
+  }
+  return null;
+}
+
+async function getItunesSongImage(title, artist) {
+  const query = `${title} ${artist}`;
+  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=1`;
+  const data = await fetchApi(url);
+  if (data.results && data.results.length > 0) {
+    // Get higher resolution image by replacing the size
+    return data.results[0].artworkUrl100?.replace('100x100bb', '600x600bb');
   }
   return null;
 }
@@ -600,35 +643,55 @@ async function getLastFmArtistImage(artistName) {
 }
 
 // Função central para buscar a melhor imagem
-async function fetchBestImage(artist, album = null) {
-  if (album) {
-    const albumQuery = `${album} ${artist}`;
-
-    const itunesImg = await getItunesAlbumImage(albumQuery);
-    if (itunesImg) return itunesImg;
-
-    const wikiAlbumImg = await getWikiImage(albumQuery);
-    if (wikiAlbumImg) return wikiAlbumImg;
+async function fetchBestImage(query, isArtist = false) {
+  try {
+    // Se for uma busca por artista, prioriza a Wikipedia
+    if (isArtist) {
+      try {
+        // 1. Primeiro tenta na Wikipedia (melhor para artistas)
+        const wikiImg = await getWikiImage(query);
+        if (wikiImg) return wikiImg;
+      } catch (e) {
+        console.log("Erro ao buscar imagem da Wikipedia:", e);
+      }
+      
+      try {
+        // 2. Depois tenta no Last.fm como fallback para artistas
+        const lastFmImg = await getLastFmArtistImage(query);
+        if (lastFmImg) return lastFmImg;
+      } catch (e) {
+        console.log("Erro ao buscar imagem no Last.fm:", e);
+      }
+    } 
+    // Para álbuns e músicas, prioriza o iTunes
+    else {
+      try {
+        // Busca diretamente no iTunes para álbuns/músicas
+        const itunesImg = await getItunesAlbumImage(query);
+        if (itunesImg) return itunesImg;
+      } catch (e) {
+        console.log("Erro ao buscar imagem do álbum no iTunes:", e);
+      }
+    }
+    
+    // Return null if no image found
+    return null;
+  } catch (error) {
+    console.error("Erro ao buscar imagens:", error);
+    return null;
   }
-
-  const wikiArtistImg = await getWikiImage(artist);
-  if (wikiArtistImg) return wikiArtistImg;
-
-  const lastFmImg = await getLastFmArtistImage(artist);
-  if (lastFmImg) return lastFmImg;
-
-  const song = songs.find(b => b.artist === artist && typeof b.imagem === 'string' && b.imagem.trim() !== '');
-  return song?.imagem || 'imagens/BohemiaRhapsody.jpg';
 }
 
 //Busca informações
 async function fetchArtistInfo(artist) {
-  // Busca imagem
-  const imgUrl = await fetchBestImage(artist);
+  // Busca imagem específica na Wikipedia para artistas
+  const imgUrl = await fetchBestImage(artist, true);
+  
   // Busca dados do Last.fm
   const apiKey = '254828efebce648b8c698471e2cd36d0';
   const url = `https://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=${encodeURIComponent(artist)}&api_key=${apiKey}&format=json&autocorrect=1`;
   const data = await fetchApi(url);
+  
   return {
     imgUrl,
     url: data.artist?.url,
