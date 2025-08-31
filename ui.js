@@ -3,10 +3,12 @@ import { Musify } from './lib.js';
 const FAVOARITES_KEY = 'Musify::favorites'
 const PLAYLISTS_KEY = 'Musify::playlists'
 
-//Carrega Playlists salvas
+// Carrega playlists salvas
 let playlists = JSON.parse(localStorage.getItem(PLAYLISTS_KEY)) || []
 
-// ===== Dados e elementos =====
+// ===================================
+// Dados e elementos
+// ===================================
 
 let allArtistsCache = null;
 const imageCache = new Map();
@@ -18,18 +20,20 @@ const output = document.getElementById('output');
 const forms = document.getElementById('forms');
 const buttons = document.getElementById('buttons');
 const search = document.getElementById('globalSearch');
+const filterGenre = document.getElementById('filterGenre');
+const filterDecade = document.getElementById('filterDecade');
 
-//Caso o usuario escreva um caractere especial do HTML ele subistitui pelo equivalente em texto no HTML
+// Caso o usuario escreva um caractere especial do HTML ele subistitui pelo equivalente em texto no HTML
 function escapeHtml(t) {
   return (t || '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
 }
 
-//Transforma segundos em minutos para ser exibido no player
+// Transforma segundos em minutos para ser exibido no player
 function formatTime(sec) {
   if (!sec) return '0:00'; const m = Math.floor(sec / 60); const s = Math.floor(sec % 60).toString().padStart(2, '0'); return `${m}:${s}`
 }
 
-//Balão flutuante
+// Balão flutuante
 function warningBallon(message) {
   const toast = document.createElement('div');
   toast.textContent = message;
@@ -48,14 +52,14 @@ function warningBallon(message) {
   }, 3000);
 }
 
-//timer para não fazer muitas chamadas API ao mesmo tempo
+// timer para não fazer muitas chamadas API ao mesmo tempo
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// ===== Forms =====
-// Cada função abaixo cria dinamicamente um formulário e adiciona
-// eventos de "submit" para executar a ação correspondente na Musify.
+// ===================================
+// FORMS
+// ===================================
 
 function formAddHtml() {
   return `
@@ -126,10 +130,10 @@ function showUpdateForm() {
     return;
   }
 
-  // Cria as opções para o dropdown, usando 'artist' em vez de 'artist'
+  // Cria a lista de músicas para o menu de seleção
   let options = currentSongs.map(s => `<option value="${s.id}">${s.title} — ${s.artist}</option>`).join("");
 
-  // HTML do formulário corrigido para usar os campos corretos (artist, album, duration)
+  // Formulário de edição
   forms.innerHTML = `
         <div class="form">
             <h3>Atualizar Música</h3>
@@ -156,7 +160,7 @@ function showUpdateForm() {
   const firstSong = currentSongs.find(s => s.id == selectElement.value);
   fillInputs(firstSong);
 
-  // Atualiza os campos do formulário sempre que uma nova música é selecionada
+  // Se o usuário escolher outra música no menu atualiza os campos
   selectElement.addEventListener("change", () => {
     const selectedId = parseInt(selectElement.value);
     const selectedSong = currentSongs.find(s => s.id === selectedId);
@@ -167,7 +171,7 @@ function showUpdateForm() {
   btnApply.addEventListener("click", () => {
     const songId = parseInt(selectElement.value);
 
-    // Coleta os novos dados do formulário
+    // Pega tudo que o usuário digitou nos campos
     const updates = {
       title: document.getElementById("update_title").value.trim(),
       artist: document.getElementById("update_artist").value.trim(),
@@ -200,18 +204,18 @@ function showUpdateForm() {
   });
 }
 
-// --- Formulário de remover livro 
+// --- Formulário para remover uma música ---
 function showDeleteForm() {
-  // Carrega a lista de músicas atual
+  // Pega a lista atual de músicas
   let currentSongs = Musify.loadSongs();
 
-  // Se não houver músicas, exibe uma mensagem e encerra
+  // Se não houver música exibe uma mensagem e encerra
   if (currentSongs.length === 0) {
     forms.innerHTML = "<p>Nenhuma música para remover.</p>";
     return;
   }
 
-  // Cria as opções do <select> com todas as músicas
+  // Cria as opções do select com todas as músicas
   const options = currentSongs.map(s =>
     `<option value="${s.id}">${escapeHtml(s.title)} — ${escapeHtml(s.artist)}</option>`
   ).join('');
@@ -233,30 +237,30 @@ function showDeleteForm() {
   const selectElement = document.getElementById('selectSongToDelete');
 
   document.getElementById('btnConfirmDelete').addEventListener('click', () => {
-    // Pega o ID da música selecionada no dropdown
+    // Vê qual música o usuário escolheu no menu
     const songId = Number(selectElement.value);
 
     // Pega os dados da música para a mensagem de confirmação
     const songToDelete = currentSongs.find(s => s.id === songId);
 
-    // Pede confirmação ao usuário (uma boa prática para evitar remoções acidentais)
+    // Pede confirmação do usuário
     if (confirm(`Tem certeza que deseja remover "${songToDelete.title}"?`)) {
-      // 1. Remove a música da lista
+      // Tira a música da lista
       songs = Musify.deleteSong(songs, songId);
 
-      // 2. Salva a nova lista no localStorage
+      // Salva a nova lista no localStorage
       Musify.saveSongs(songs);
 
-      // 3. Atualiza a exibição na tela
+      // Atualiza a exibição na tela
       renderList(songs);
 
-      // 4. Fecha o formulário
+      // Fecha o formulário
       forms.innerHTML = '';
     }
   });
 
   document.getElementById('btnCancelDelete').addEventListener('click', () => {
-    // Apenas fecha o formulário
+    // Fecha o formulário
     forms.innerHTML = '';
   });
 }
@@ -323,7 +327,7 @@ function attachItunesAutocomplete() {
         };
         dropdown.appendChild(item);
       });
-      // Posiciona o dropdown abaixo do formulário
+      // Coloca a caixa de sugestões abaixo do formulário
       dropdown.style.top = (formDiv.offsetTop + formDiv.offsetHeight) + 'px';
       dropdown.style.left = formDiv.offsetLeft + 'px';
       dropdown.style.display = 'block';
@@ -337,13 +341,45 @@ function attachItunesAutocomplete() {
   artistInput.addEventListener('input', showSuggestions);
   albumInput.addEventListener('input', showSuggestions);
 
-  // Fecha o dropdown ao clicar fora
+  // Se clicar em qualquer outro lugar da página esconde as sugestões
   document.addEventListener('click', (e) => {
     if (!formDiv.contains(e.target)) dropdown.style.display = 'none';
   });
 }
 
-// ===== RENDERIZAÇÃO =====
+function applyFilters() {
+  const genre = filterGenre.value;
+  const decade = filterDecade.value;
+  const query = search.value.trim().toLowerCase();
+
+  let filteredSongs = songs;
+
+  // Filtra por gênero
+  if (genre !== 'all') {
+    filteredSongs = filteredSongs.filter(s => s.genre === genre);
+  }
+
+  // Filtra por década
+  if (decade !== 'all') {
+    const startYear = Number(decade);
+    const endYear = startYear + 9;
+    filteredSongs = filteredSongs.filter(s => s.year >= startYear && s.year <= endYear);
+  }
+
+  // Filtra pela busca de texto
+  if (query) {
+    filteredSongs = filteredSongs.filter(s => {
+      const text = (s.title + s.artist + (s.album || '')).toLowerCase();
+      return text.includes(query);
+    });
+  }
+
+  renderList(filteredSongs);
+}
+
+// ===================================
+// RENDERIZAÇÃO
+// ===================================
 async function generateSongGridHTML(list) {
   if (!list || list.length === 0) {
     return '<div style="color:var(--muted)">Nenhuma música na coleção.</div>';
@@ -351,20 +387,20 @@ async function generateSongGridHTML(list) {
 
   const html = ['<div class="song-grid">'];
 
-  // Busca capas prioritariamente no iTunes para álbuns
+  // Busca capas prioritamente na API
   const covers = await Promise.all(list.map(async s => {
-    // 1. Se tiver álbum, tenta buscar pela imagem do álbum primeiro (prioridade)
+    // Tenta achar a capa do álbum
     if (s.album) {
       const albumQuery = `${s.album} ${s.artist}`;
       const albumCover = await getItunesAlbumImage(albumQuery);
       if (albumCover) return albumCover;
     }
 
-    // 2. Se não encontrou pelo álbum, tenta pela música
+    // Depois tenta pela música
     const songCover = await getItunesSongImage(s.title, s.artist);
     if (songCover) return songCover;
 
-    // 3. Não usa imagem de artista para capas de músicas
+    // Não usa imagem de artista para capas de músicas
     return null;
   }));
 
@@ -402,8 +438,10 @@ async function renderArtistsongs(list, container) {
   container.innerHTML = await generateSongGridHTML(list);
 }
 
-// ===== GRID DE ARTISTAS & CHART =====
-/* Exibe uma grade de artistas filtrada por letra inicial */
+// ===================================
+// SEÇÃO DE ARTISTAS E CHART
+// ===================================
+// Exibe uma grade de artistas filtrada por letra inicial
 function showArtistsGrid(letra = "all") {
   output.innerHTML = `
     <h3 class="artists-title">Selecione um autor</h3>
@@ -411,7 +449,7 @@ function showArtistsGrid(letra = "all") {
     <div id="artistsGrid"></div>
   `;
 
-  // Cria menu alfabético para navegação rápida entre artistas
+  // Cria um menu de A a Z para acelerar a pesquisa
   const letters = ["Todos", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
   const lettersMenu = document.getElementById('lettersMenu');
   lettersMenu.innerHTML = '';
@@ -423,7 +461,7 @@ function showArtistsGrid(letra = "all") {
     lettersMenu.appendChild(btn);
   });
 
-  // Carrega a lista de artistas do cache ou cria uma nova lista ordenada
+  // Guarda a lista de artistas num cache depois da primeira vez
   if (!allArtistsCache) {
     const unsorted = Musify.listSingers(songs);
     allArtistsCache = [...unsorted].sort((a, b) => {
@@ -433,7 +471,7 @@ function showArtistsGrid(letra = "all") {
     });
   }
 
-  // Filtra os artistas pela letra selecionada ou mostra todos
+  // Separa só os artistas que começam com a letra escolhida
   const artists = letra === "all"
     ? allArtistsCache // Mostra todos os artistas se "all" foi selecionado
     : allArtistsCache.filter(artist => {
@@ -449,12 +487,12 @@ function showArtistsGrid(letra = "all") {
     const div = document.createElement('div');
     div.className = 'artist-card';
 
-    // Busca imagem especificamente da Wikipedia para artistas
+    // Busca imagem da Wikipedia para artistas
     let imgUrl = await fetchBestImage(artist, true);
 
     let cover;
     if (Array.isArray(imgUrl) && imgUrl.length === 2) {
-      // Se vier duas imagens, mostra lado a lado
+      // Se for uma dupla mostra as duas fotos divididas
       cover = document.createElement('div');
       cover.className = 'cover artist-img double-img';
       cover.innerHTML = `
@@ -500,7 +538,7 @@ function showArtistsGrid(letra = "all") {
 
       const info = await fetchArtistInfo(artist);
 
-      // Cria o cabeçalho com detalhes do artista
+      // Cria um painel com detalhes do artista
       const artistHeader = document.createElement('div');
       artistHeader.className = 'artist-details';
       artistHeader.innerHTML = `
@@ -519,7 +557,7 @@ function showArtistsGrid(letra = "all") {
       `;
       output.appendChild(artistHeader);
 
-      // Cria container para exibir a lista de músicas deste artista
+      // Cria um espaço para exibir a lista de músicas de um artista
       const songsContainer = document.createElement('div');
       songsContainer.id = 'songsContainer';
       output.appendChild(songsContainer);
@@ -538,7 +576,7 @@ function showArtistChart() {
   const counts = Musify.countsongsByArtist(songs);
   const sorted = Object.entries(counts).sort((a, b) => a[1] - b[1]);
 
-  // Extrai rótulos (autores) e valores (quantidade)
+  // Separa os dados em uma lista com os nomes e outra com a quantiddae
   const labels = sorted.map(([autor]) => autor);
   const data = sorted.map(([_, qtd]) => qtd);
   const colors = labels.map(() => `hsl(${Math.random() * 360}, 70%, 60%)`);
@@ -567,7 +605,7 @@ function toggleFavoriteHandler(songId) {
   warningBallon('Favoritos atualizados!')
 }
 
-// Função para exibir músicas favoritas
+// Função para mostrar músicas favoritas
 function showFavorites() {
   const favorites = Musify.getFavoriteSongs(songs)
   if (favorites.length === 0) {
@@ -690,8 +728,10 @@ function showCreatePlaylistForm() {
   `
 }
 
-// =================== API =================
-// Função genérica para buscar dados de API
+// ===================================
+// API
+// ===================================
+// Função para buscar dados de API
 async function fetchApi(url) {
   try {
     // Verifica se a URL já está no cache
@@ -739,7 +779,7 @@ async function getItunesAlbumImage(query) {
   const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
   const data = await fetchApi(url);
   if (data.results && data.results.length > 0) {
-    // Get higher resolution image by replacing the size
+    // Consegue uma imagem de resolução melhor
     return data.results[0].artworkUrl100.replace('100x100bb', '600x600bb');
   }
   return null;
@@ -750,7 +790,7 @@ async function getItunesSongImage(title, artist) {
   const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=1`;
   const data = await fetchApi(url);
   if (data.results && data.results.length > 0) {
-    // Get higher resolution image by replacing the size
+    // Consegue uma imagem de resolução melhor
     return data.results[0].artworkUrl100?.replace('100x100bb', '600x600bb');
   }
   return null;
@@ -812,13 +852,13 @@ async function getLastFmArtistImage(artistName) {
   return null;
 }
 
-// Função central para buscar a melhor imagem
+// Função para buscar a melhor imagem
 async function fetchBestImage(query, isArtist = false) {
   try {
     // Se for uma busca por artista, prioriza a Wikipedia
     if (isArtist) {
       try {
-        // 1. Primeiro tenta na Wikipedia (melhor para artistas)
+        // Primeiro tenta no Wikipedia.
         const wikiImg = await getWikiImage(query);
         if (wikiImg) return wikiImg;
       } catch (e) {
@@ -826,7 +866,7 @@ async function fetchBestImage(query, isArtist = false) {
       }
 
       try {
-        // 2. Depois tenta no Last.fm como fallback para artistas
+        // Depois no Last.fm.
         const lastFmImg = await getLastFmArtistImage(query);
         if (lastFmImg) return lastFmImg;
       } catch (e) {
@@ -844,7 +884,7 @@ async function fetchBestImage(query, isArtist = false) {
       }
     }
 
-    // Return null if no image found
+    // Retorna null se não achar a imagem
     return null;
   } catch (error) {
     console.error("Erro ao buscar imagens:", error);
@@ -852,7 +892,7 @@ async function fetchBestImage(query, isArtist = false) {
   }
 }
 
-//Busca informações
+// Busca informações
 async function fetchArtistInfo(artist) {
   // Busca imagem específica na Wikipedia para artistas
   const imgUrl = await fetchBestImage(artist, true);
@@ -870,7 +910,9 @@ async function fetchArtistInfo(artist) {
   };
 }
 
-// ===== Actions =====
+// ===================================
+// ACTIONS
+// ===================================
 const actions = {
   init: () => {
     songs = Musify.resetSongs();
@@ -889,32 +931,27 @@ const actions = {
   exit: () => { forms.innerHTML = ''; output.textContent = 'Bye, bye! :)'; }
 };
 
-// ===== Event listener =====
+// ===================================
+// EVENT LISTENER
+// ===================================
 // Captura cliques nos botões do menu e chama a ação correspondente
 buttons.addEventListener('click', e => {
   if (e.target.tagName === 'BUTTON') {
-    const action = e.target.dataset.action; // Lê o "data-action" do botão
+    const action = e.target.dataset.action; // Descobre qual botão foi clicado
     if (action && actions[action]) actions[action](); // Executa a função correspondente
   }
 });
 
 search.addEventListener('input', () => {
-  const q = search.value.trim().toLowerCase();
-
-  if (!q) {
-    renderList(songs); // lista completa
-    return;
-  }
-
-  const filtered = songs.filter(s => {
-    const text = (s.title + s.artist + (s.album || '')).toLowerCase();
-    return text.includes(q);
-  });
-
-  renderList(filtered);
+ applyFilters();
 });
 
-// ===== PLAYER PREVIEW =====
+filterGenre.addEventListener('change', applyFilters);
+filterDecade.addEventListener('change', applyFilters);
+
+// ===================================
+// LÓGICA DO PLAYER DE MÚSICA
+// ===================================
 window.deletePlaylistHandler = deletePlaylistHandler
 window.viewPlaylist = viewPlaylist
 window.addToPlaylistHandler = addToPlaylistHandler
@@ -952,7 +989,7 @@ window.playItunesPreview = async function (query) {
   </div>
 `;
 
-    // Custom player logic
+    // Conecta os botões com o player de áudio
     const audio = document.getElementById('itunesAudio');
     const playPauseBtn = document.getElementById('audioPlayPause');
     const current = document.getElementById('audioCurrent');
