@@ -1,39 +1,87 @@
-import { Musify } from './lib.js';
+// =====================================================================
+// MUSIFY - INTERFACE DE USUÁRIO
+// =====================================================================
+// Este arquivo gerencia toda a interface do usuário, incluindo:
+// - Renderização de listas de músicas e artistas
+// - Formulários de CRUD (Create, Read, Update, Delete)
+// - Integração com APIs externas (iTunes, Wikipedia, Last.fm)
+// - Player de música com preview do iTunes
+// =====================================================================
 
+import { Musify } from './lib.js';
+import { 
+  fetchApi, 
+  fetchItunesPreview, 
+  getItunesAlbumImage, 
+  getItunesSongImage, 
+  getWikiImage, 
+  getLastFmArtistImage, 
+  fetchBestImage, 
+  fetchArtistInfo,
+  sleep 
+} from './api.js';
+
+// =====================================================================
+// SEÇÃO 1: CONFIGURAÇÃO INICIAL E CONSTANTES
+// =====================================================================
+
+// Chaves para armazenamento local
 const FAVOARITES_KEY = 'Musify::favorites'
 const PLAYLISTS_KEY = 'Musify::playlists'
 
-// Carrega playlists salvas
-let playlists = JSON.parse(localStorage.getItem(PLAYLISTS_KEY)) || []
+// =====================================================================
+// SEÇÃO 2: ESTADO DA APLICAÇÃO E CACHE
+// =====================================================================
 
-// ===================================
-// Dados e elementos
-// ===================================
+// Cache de dados para otimizar performance
+let allArtistsCache = null;              // Cache da lista de artistas únicos
 
-let allArtistsCache = null;
-const imageCache = new Map();
-let songs = Musify.loadSongs()
-Musify.saveSongs(songs);
+// Estado principal da aplicação
+let songs = Musify.loadSongs()           // Lista de músicas carregada do localStorage
+Musify.saveSongs(songs);                 // Garante que os dados estão salvos
+let playlists = JSON.parse(localStorage.getItem(PLAYLISTS_KEY)) || []  // Playlists do usuário
 
-// Seleciona elementos HTML que serão manipulados pelo JavaScript
-const output = document.getElementById('output');
-const forms = document.getElementById('forms');
-const buttons = document.getElementById('buttons');
-const search = document.getElementById('globalSearch');
-const filterGenre = document.getElementById('filterGenre');
-const filterDecade = document.getElementById('filterDecade');
+// =====================================================================
+// SEÇÃO 3: REFERÊNCIAS DOS ELEMENTOS DOM
+// =====================================================================
 
-// Caso o usuario escreva um caractere especial do HTML ele subistitui pelo equivalente em texto no HTML
+// Elementos principais da interface
+const output = document.getElementById('output');           // Área principal de exibição
+const forms = document.getElementById('forms');             // Área de formulários
+const buttons = document.getElementById('buttons');         // Menu lateral de ações
+const search = document.getElementById('globalSearch');     // Campo de busca global
+const filterGenre = document.getElementById('filterGenre'); // Filtro por gênero
+const filterDecade = document.getElementById('filterDecade'); // Filtro por década
+
+// =====================================================================
+// SEÇÃO 4: FUNÇÕES UTILITÁRIAS
+// =====================================================================
+
+/**
+ * Escapa caracteres especiais HTML para prevenir XSS
+ * @param {string} t - Texto a ser escapado
+ * @returns {string} Texto com caracteres HTML escapados
+ */
 function escapeHtml(t) {
   return (t || '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
 }
 
-// Transforma segundos em minutos para ser exibido no player
+/**
+ * Converte segundos para formato de tempo MM:SS
+ * @param {number} sec - Tempo em segundos
+ * @returns {string} Tempo formatado (ex: "3:45")
+ */
 function formatTime(sec) {
-  if (!sec) return '0:00'; const m = Math.floor(sec / 60); const s = Math.floor(sec % 60).toString().padStart(2, '0'); return `${m}:${s}`
+  if (!sec) return '0:00'; 
+  const m = Math.floor(sec / 60); 
+  const s = Math.floor(sec % 60).toString().padStart(2, '0'); 
+  return `${m}:${s}`
 }
 
-// Balão flutuante
+/**
+ * Exibe uma notificação temporária no canto da tela
+ * @param {string} message - Mensagem a ser exibida
+ */
 function warningBallon(message) {
   const toast = document.createElement('div');
   toast.textContent = message;
@@ -52,15 +100,14 @@ function warningBallon(message) {
   }, 3000);
 }
 
-// timer para não fazer muitas chamadas API ao mesmo tempo
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+// =====================================================================
+// SEÇÃO 5: GERAÇÃO DE HTML - FORMULÁRIOS
+// =====================================================================
 
-// ===================================
-// FORMS
-// ===================================
-
+/**
+ * Gera o HTML do formulário para adicionar uma nova música
+ * @returns {string} HTML do formulário
+ */
 function formAddHtml() {
   return `
     <div class="form">
@@ -77,6 +124,14 @@ function formAddHtml() {
   `
 }
 
+// =====================================================================
+// SEÇÃO 6: FORMULÁRIOS - ADICIONAR MÚSICA
+// =====================================================================
+
+/**
+ * Adiciona event listeners ao formulário de adição de música
+ * Gerencia a validação, salvamento e atualização da interface
+ */
 function attachAddHandlers() {
   document.getElementById('f_add').addEventListener('click', () => {
     const t = document.getElementById('f_title').value.trim(),
@@ -110,7 +165,14 @@ function attachAddHandlers() {
   document.getElementById('f_cancel').addEventListener('click', () => forms.innerHTML = '')
 }
 
-// Função auxiliar para preencher os inputs do formulário de atualização
+// =====================================================================
+// SEÇÃO 7: FORMULÁRIOS - ATUALIZAR MÚSICA
+// =====================================================================
+
+/**
+ * Preenche os campos do formulário de atualização com os dados de uma música
+ * @param {Object} song - Objeto da música com as propriedades a serem exibidas
+ */
 function fillInputs(song) {
   if (song) {
     document.getElementById("update_title").value = song.title || '';
@@ -120,7 +182,10 @@ function fillInputs(song) {
   }
 }
 
-// Função para renderizar o formulário de atualização
+/**
+ * Exibe o formulário de atualização de música
+ * Permite selecionar uma música e editar seus dados
+ */
 function showUpdateForm() {
   // Carrega a lista mais recente para garantir que os dados estão atualizados
   let currentSongs = Musify.loadSongs();
@@ -204,7 +269,14 @@ function showUpdateForm() {
   });
 }
 
-// --- Formulário para remover uma música ---
+// =====================================================================
+// SEÇÃO 8: FORMULÁRIOS - REMOVER MÚSICA
+// =====================================================================
+
+/**
+ * Exibe o formulário para remover uma música da coleção
+ * Permite selecionar e deletar uma música com confirmação
+ */
 function showDeleteForm() {
   // Pega a lista atual de músicas
   let currentSongs = Musify.loadSongs();
@@ -265,12 +337,23 @@ function showDeleteForm() {
   });
 }
 
+// =====================================================================
+// SEÇÃO 9: AUTOCOMPLETE - INTEGRAÇÃO COM ITUNES
+// =====================================================================
+
+/**
+ * Inicializa o formulário de adição com autocomplete do iTunes
+ */
 function action_add() {
   forms.innerHTML = formAddHtml();
   attachAddHandlers();
   attachItunesAutocomplete();
 }
 
+/**
+ * Adiciona funcionalidade de autocomplete ao formulário de adição
+ * Busca sugestões da API do iTunes conforme o usuário digita
+ */
 function attachItunesAutocomplete() {
   const titleInput = document.getElementById('f_title');
   const artistInput = document.getElementById('f_artist');
@@ -347,6 +430,14 @@ function attachItunesAutocomplete() {
   });
 }
 
+// =====================================================================
+// SEÇÃO 10: FILTROS E BUSCA
+// =====================================================================
+
+/**
+ * Aplica filtros de busca, gênero e década à lista de músicas
+ * Atualiza a exibição com as músicas filtradas
+ */
 function applyFilters() {
   const genre = filterGenre.value;
   const decade = filterDecade.value;
@@ -377,9 +468,16 @@ function applyFilters() {
   renderList(filteredSongs);
 }
 
-// ===================================
-// RENDERIZAÇÃO
-// ===================================
+// =====================================================================
+// SEÇÃO 11: RENDERIZAÇÃO - LISTA DE MÚSICAS
+// =====================================================================
+
+/**
+ * Gera o HTML para exibir uma grade de músicas
+ * Busca capas de álbuns via API e cria cards interativos
+ * @param {Array} list - Lista de músicas a serem exibidas
+ * @returns {Promise<string>} HTML da grade de músicas
+ */
 async function generateSongGridHTML(list) {
   if (!list || list.length === 0) {
     return '<div style="color:var(--muted)">Nenhuma música na coleção.</div>';
@@ -430,18 +528,31 @@ async function generateSongGridHTML(list) {
   return html.join('\n');
 }
 
+/**
+ * Renderiza a lista de músicas na área principal
+ * @param {Array} list - Lista de músicas (padrão: todas as músicas)
+ */
 async function renderList(list = songs) {
   output.innerHTML = await generateSongGridHTML(list);
 }
 
+/**
+ * Renderiza lista de músicas em um container específico (usado na visualização de artistas)
+ * @param {Array} list - Lista de músicas do artista
+ * @param {HTMLElement} container - Elemento onde renderizar
+ */
 async function renderArtistsongs(list, container) {
   container.innerHTML = await generateSongGridHTML(list);
 }
 
-// ===================================
-// SEÇÃO DE ARTISTAS E CHART
-// ===================================
-// Exibe uma grade de artistas filtrada por letra inicial
+// =====================================================================
+// SEÇÃO 12: RENDERIZAÇÃO - ARTISTAS E GRÁFICOS
+// =====================================================================
+
+/**
+ * Exibe uma grade de artistas com filtro alfabético
+ * @param {string} letra - Letra para filtrar artistas ("all" para todos)
+ */
 function showArtistsGrid(letra = "all") {
   output.innerHTML = `
     <h3 class="artists-title">Selecione um autor</h3>
@@ -569,6 +680,10 @@ function showArtistsGrid(letra = "all") {
   });
 }
 
+/**
+ * Exibe um gráfico de barras com a contagem de músicas por artista
+ * Utiliza a biblioteca Chart.js para criar a visualização
+ */
 function showArtistChart() {
   output.innerHTML = `<canvas id="artistChart"></canvas>`;
   forms.innerHTML = '';
@@ -597,7 +712,14 @@ function showArtistChart() {
   });
 }
 
-// Função para favoritar/desfavoritar música
+// =====================================================================
+// SEÇÃO 13: GERENCIAMENTO DE FAVORITOS
+// =====================================================================
+
+/**
+ * Alterna o status de favorito de uma música
+ * @param {number} songId - ID da música
+ */
 function toggleFavoriteHandler(songId) {
   songs = Musify.toggleFavorite(songs, songId)
   Musify.saveSongs(songs)
@@ -605,7 +727,9 @@ function toggleFavoriteHandler(songId) {
   warningBallon('Favoritos atualizados!')
 }
 
-// Função para mostrar músicas favoritas
+/**
+ * Exibe apenas as músicas favoritadas
+ */
 function showFavorites() {
   const favorites = Musify.getFavoriteSongs(songs)
   if (favorites.length === 0) {
@@ -616,7 +740,13 @@ function showFavorites() {
   forms.innerHTML = ''
 }
 
-// Funções para gerenciar playlists
+// =====================================================================
+// SEÇÃO 14: GERENCIAMENTO DE PLAYLISTS
+// =====================================================================
+
+/**
+ * Exibe a interface de gerenciamento de playlists
+ */
 function showPlaylistsManager() {
   output.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
@@ -630,6 +760,9 @@ function showPlaylistsManager() {
   forms.innerHTML = ''
 }
 
+/**
+ * Renderiza a lista de playlists no container
+ */
 function renderPlaylists() {
   const container = document.getElementById('playlistsContainer')
   if (!container) return
@@ -653,6 +786,9 @@ function renderPlaylists() {
   `).join('')
 }
 
+/**
+ * Cria uma nova playlist com o nome fornecido
+ */
 function createPlaylistHandler() {
   const name = document.getElementById('playlistName').value.trim()
   if (!name) {
@@ -667,6 +803,10 @@ function createPlaylistHandler() {
   warningBallon('Playlist criada!')
 }
 
+/**
+ * Remove uma playlist após confirmação do usuário
+ * @param {number} playlistId - ID da playlist a ser removida
+ */
 function deletePlaylistHandler(playlistId) {
   if (confirm('Tem certeza que deseja excluir esta playlist?')) {
     playlists = Musify.deletePlaylist(playlists, playlistId)
@@ -676,6 +816,10 @@ function deletePlaylistHandler(playlistId) {
   }
 }
 
+/**
+ * Visualiza as músicas de uma playlist específica
+ * @param {number} playlistId - ID da playlist a ser visualizada
+ */
 function viewPlaylist(playlistId) {
   const playlistSongs = Musify.getPlaylistSongs(playlists, playlistId, songs)
   if (playlistSongs.length === 0) {
@@ -686,6 +830,10 @@ function viewPlaylist(playlistId) {
   forms.innerHTML = ''
 }
 
+/**
+ * Exibe diálogo para adicionar uma música a uma playlist
+ * @param {number} songId - ID da música a ser adicionada
+ */
 function showAddToPlaylistDialog(songId) {
   if (playlists.length === 0) {
     alert('Crie uma playlist primeiro!')
@@ -707,6 +855,10 @@ function showAddToPlaylistDialog(songId) {
   `
 }
 
+/**
+ * Adiciona uma música à playlist selecionada
+ * @param {number} songId - ID da música a ser adicionada
+ */
 function addToPlaylistHandler(songId) {
   const playlistId = parseInt(document.getElementById('playlistSelect').value)
   playlists = Musify.addSongToPlaylist(playlists, playlistId, songId)
@@ -715,6 +867,9 @@ function addToPlaylistHandler(songId) {
   warningBallon('Música adicionada à playlist!')
 }
 
+/**
+ * Exibe formulário para criar uma nova playlist
+ */
 function showCreatePlaylistForm() {
   forms.innerHTML = `
     <div class="form">
@@ -728,37 +883,10 @@ function showCreatePlaylistForm() {
   `
 }
 
-// ===================================
-// API
-// ===================================
-// Função para buscar dados de API
-async function fetchApi(url) {
-  try {
-    // Verifica se a URL já está no cache
-    if (imageCache.has(url)) {
-      return imageCache.get(url);
-    }
-
-    const response = await fetch(url, {
-      mode: 'cors',
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`Erro na API: ${response.status}`);
-    }
-
-    const data = await response.json();
-    imageCache.set(url, data);
-    return data;
-  } catch (error) {
-    console.error(`Erro ao buscar dados de ${url}:`, error);
-    return {};
-  }
-}
-
+/**
+ * Adiciona uma música à fila de reprodução
+ * @param {number} songId - ID da música
+ */
 function enqueue(songId) {
   const song = songs.find(s => s.id === songId)
   if (song) {
@@ -768,151 +896,13 @@ function enqueue(songId) {
   }
 }
 
-async function fetchItunesPreview(query) {
-  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=1`;
-  const data = await fetchApi(url);
-  const result = data.results?.[0];
-  return result?.previewUrl || null;
-}
+// =====================================================================
+// SEÇÃO 15: AÇÕES DO MENU PRINCIPAL
+// =====================================================================
 
-async function getItunesAlbumImage(query) {
-  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=1`;
-  const data = await fetchApi(url);
-  if (data.results && data.results.length > 0) {
-    // Consegue uma imagem de resolução melhor
-    return data.results[0].artworkUrl100.replace('100x100bb', '600x600bb');
-  }
-  return null;
-}
-
-async function getItunesSongImage(title, artist) {
-  const query = `${title} ${artist}`;
-  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=1`;
-  const data = await fetchApi(url);
-  if (data.results && data.results.length > 0) {
-    // Consegue uma imagem de resolução melhor
-    return data.results[0].artworkUrl100?.replace('100x100bb', '600x600bb');
-  }
-  return null;
-}
-
-async function getWikiImage(query) {
-  const cleanQuery = query.replace(/^(os|as|the)\s+/i, '').trim();
-  // Se for colaboração, busca para cada artista
-  if (query.includes('&')) {
-    const parts = query.split('&').map(p => p.trim());
-    const images = [];
-    for (const part of parts) {
-      const img = await getWikiImage(part);
-      if (img) images.push(img);
-      await sleep(200);
-    }
-    return images.length > 0 ? images : null;
-  }
-
-  const andQuery = cleanQuery.replace(/&/g, 'and');
-  const noSpaceQuery = cleanQuery.replace(/\s+/g, '');
-  const asciiQuery = cleanQuery.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  const variants = [
-    query, cleanQuery, andQuery, noSpaceQuery, asciiQuery,
-    `${cleanQuery} (band)`, `${cleanQuery} (group)`, `${cleanQuery} (duo)`,
-    `${cleanQuery} (musician)`, `${cleanQuery} (singer)`, `${cleanQuery} (artist)`,
-    `${cleanQuery} (rapper)`, `${cleanQuery} (composer)`, `${cleanQuery} (producer)`,
-    `${cleanQuery} (DJ)`, `${andQuery} (band)`, `${andQuery} (group)`, `${andQuery} (duo)`,
-    `${asciiQuery} (band)`, `${asciiQuery} (group)`, `${asciiQuery} (duo)`
-  ];
-
-  for (const variant of variants) {
-    const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(variant)}&prop=pageimages&format=json&pithumbsize=300&origin=*`;
-    const data = await fetchApi(url);
-    if (data.query && data.query.pages) {
-      const pages = data.query.pages;
-      for (const pageId in pages) {
-        if (pages[pageId].thumbnail && pages[pageId].thumbnail.source) {
-          return pages[pageId].thumbnail.source;
-        }
-      }
-    }
-    await sleep(200);
-  }
-  return null;
-}
-
-async function getLastFmArtistImage(artistName) {
-  const apiKey = '254828efebce648b8c698471e2cd36d0';
-  const url = `https://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=${encodeURIComponent(artistName)}&api_key=${apiKey}&format=json&autocorrect=1`;
-  const data = await fetchApi(url);
-  const artist = data.artist;
-  if (artist && artist.image && artist.image.length > 0) {
-    const imgObj = artist.image.reverse().find(img =>
-      img['#text'] && !img['#text'].includes('2a96cbd8b46e442fc41c2b86b821562f.png')
-    );
-    if (imgObj && imgObj['#text']) return imgObj['#text'];
-  }
-  return null;
-}
-
-// Função para buscar a melhor imagem
-async function fetchBestImage(query, isArtist = false) {
-  try {
-    // Se for uma busca por artista, prioriza a Wikipedia
-    if (isArtist) {
-      try {
-        // Primeiro tenta no Wikipedia.
-        const wikiImg = await getWikiImage(query);
-        if (wikiImg) return wikiImg;
-      } catch (e) {
-        console.log("Erro ao buscar imagem da Wikipedia:", e);
-      }
-
-      try {
-        // Depois no Last.fm.
-        const lastFmImg = await getLastFmArtistImage(query);
-        if (lastFmImg) return lastFmImg;
-      } catch (e) {
-        console.log("Erro ao buscar imagem no Last.fm:", e);
-      }
-    }
-    // Para álbuns e músicas, prioriza o iTunes
-    else {
-      try {
-        // Busca diretamente no iTunes para álbuns/músicas
-        const itunesImg = await getItunesAlbumImage(query);
-        if (itunesImg) return itunesImg;
-      } catch (e) {
-        console.log("Erro ao buscar imagem do álbum no iTunes:", e);
-      }
-    }
-
-    // Retorna null se não achar a imagem
-    return null;
-  } catch (error) {
-    console.error("Erro ao buscar imagens:", error);
-    return null;
-  }
-}
-
-// Busca informações
-async function fetchArtistInfo(artist) {
-  // Busca imagem específica na Wikipedia para artistas
-  const imgUrl = await fetchBestImage(artist, true);
-
-  // Busca dados do Last.fm
-  const apiKey = '254828efebce648b8c698471e2cd36d0';
-  const url = `https://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=${encodeURIComponent(artist)}&api_key=${apiKey}&format=json&autocorrect=1`;
-  const data = await fetchApi(url);
-
-  return {
-    imgUrl,
-    url: data.artist?.url,
-    listeners: data.artist?.stats?.listeners,
-    tags: data.artist?.tags?.tag?.map(t => t.name).join(', ')
-  };
-}
-
-// ===================================
-// ACTIONS
-// ===================================
+/**
+ * Objeto que mapeia cada ação do menu à sua função correspondente
+ */
 const actions = {
   init: () => {
     songs = Musify.resetSongs();
@@ -931,10 +921,13 @@ const actions = {
   exit: () => { forms.innerHTML = ''; output.textContent = 'Bye, bye! :)'; }
 };
 
-// ===================================
-// EVENT LISTENER
-// ===================================
-// Captura cliques nos botões do menu e chama a ação correspondente
+// =====================================================================
+// SEÇÃO 16: EVENT LISTENERS
+// =====================================================================
+
+/**
+ * Captura cliques nos botões do menu lateral e executa a ação correspondente
+ */
 buttons.addEventListener('click', e => {
   if (e.target.tagName === 'BUTTON') {
     const action = e.target.dataset.action; // Descobre qual botão foi clicado
@@ -942,16 +935,28 @@ buttons.addEventListener('click', e => {
   }
 });
 
+/**
+ * Aplica filtros quando o usuário digita na busca
+ */
 search.addEventListener('input', () => {
  applyFilters();
 });
 
+/**
+ * Aplica filtros quando o usuário altera o gênero
+ */
 filterGenre.addEventListener('change', applyFilters);
+
+/**
+ * Aplica filtros quando o usuário altera a década
+ */
 filterDecade.addEventListener('change', applyFilters);
 
-// ===================================
-// LÓGICA DO PLAYER DE MÚSICA
-// ===================================
+// =====================================================================
+// SEÇÃO 17: FUNÇÕES GLOBAIS (expostas ao window para uso no HTML)
+// =====================================================================
+
+// Expõe funções necessárias para os event handlers inline no HTML
 window.deletePlaylistHandler = deletePlaylistHandler
 window.viewPlaylist = viewPlaylist
 window.addToPlaylistHandler = addToPlaylistHandler
@@ -960,6 +965,15 @@ window.showCreatePlaylistForm = showCreatePlaylistForm
 window.toggleFavoriteHandler = toggleFavoriteHandler
 window.showAddToPlaylistDialog = showAddToPlaylistDialog
 window.enqueue = enqueue
+
+// =====================================================================
+// SEÇÃO 18: PLAYER DE MÚSICA COM PREVIEW DO ITUNES
+// =====================================================================
+
+/**
+ * Reproduz o preview de uma música do iTunes no player
+ * @param {string} query - Busca no formato "título artista"
+ */
 window.playItunesPreview = async function (query) {
   const previewUrl = await fetchItunesPreview(query);
   const song = songs.find(s => `${s.title} ${s.artist}` === query);
@@ -1045,3 +1059,7 @@ window.playItunesPreview = async function (query) {
     `;
   }
 };
+
+// =====================================================================
+// FIM DO ARQUIVO - MUSIFY UI
+// =====================================================================

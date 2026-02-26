@@ -1,0 +1,725 @@
+/* ===================================================================== */
+/* MUSIFY - FOLHA DE ESTILOS */
+/* ===================================================================== */
+/* Arquivo CSS centralizado com todos os estilos da aplicação */
+/* ===================================================================== */
+
+/* ===================================================================== */
+/* SEÇÃO 1: RESET E CONFIGURAÇÕES GLOBAIS */
+/* ===================================================================== */
+
+/* Reset básico para garantir consistência entre navegadores */
+* { 
+  box-sizing: border-box; 
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+/* Variáveis CSS para cores do tema */
+:root {
+  --accent: #1db954;    /* Verde Spotify - usado em destaques */
+  --bg: #121212;        /* Fundo escuro principal */
+  --panel: #181818;     /* Painéis e cards */
+  --muted: #b3b3b3;     /* Texto secundário */
+  --gold: #d8ba62;      /* Dourado para o logo e destaques especiais */
+}
+
+/* ===================================================================== */
+/* SEÇÃO 2: LAYOUT PRINCIPAL */
+/* ===================================================================== */
+
+body {
+  background: linear-gradient(180deg, #0f0f0f 0%, #121212 100%);
+  color: #fff;
+}
+
+/* Container principal com flexbox para sidebar + conteúdo */
+#container {
+  display: flex;
+  min-height: 100vh;
+  gap: 18px;
+  padding: 18px;
+}
+
+/* ===================================================================== */
+/* SEÇÃO 3: SIDEBAR (Menu Lateral) */
+/* ===================================================================== */
+
+#sidebar {
+  position: sticky; 
+  top: 18px;
+  max-height: calc(100vh - 36px);
+  width: 260px;
+  background: #0e0e0e;
+  border-radius: 12px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: stretch;
+  z-index: 1000; 
+  
+  /* Efeito de sidebar retrátil */
+  transition: transform 0.4s ease-in-out; 
+  transform: translateX(-232px);  /* Esconde parcialmente */
+  border-right: 2px solid var(--gold); 
+}
+
+/* Expande a sidebar ao passar o mouse */
+#sidebar:hover { 
+  transform: translateX(0);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  border-right-color: transparent; 
+}
+
+/* Logo Musify com efeito de brilho animado */
+#sidebar h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  font-size: 50px;
+  text-align: center;
+  
+  /* Gradiente animado para efeito de brilho */
+  background: linear-gradient(
+    90deg, 
+    var(--gold) 0%, 
+    #ffffff 50%, 
+    var(--gold) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: shimmer-effect 8s linear infinite;
+  text-shadow: 0 0 10px rgba(216, 186, 98, 0.2); 
+}
+
+/* Container dos botões do menu */
+#buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Estilo dos botões de ação */
+button[data-action] {
+  padding: 12px 14px;
+  border-radius: 999px;
+  border: 0;
+  background: linear-gradient(180deg, #2a2a2a, #171717);
+  color: #fff;
+  cursor: pointer;
+  text-align: center;
+  transition: all .5s ease;
+}
+
+/* Efeito hover: levanta o botão */
+button[data-action]:hover {
+  box-shadow: 0 6px 18px rgba(255, 255, 255, 0.6);
+  transform: translateY(-2px);
+  background: #ffffff;
+  color: #0f0f0f;
+}
+
+/* Efeito de clique: afunda o botão */
+button[data-action]:active {
+  background: linear-gradient(180deg, #2a2a2a, #171717);
+  color: #ffffff;
+  box-shadow: #000000 0px 0px 0px 0px;
+  transform: translate(10px);
+  transition: 100ms;
+}
+
+/* ===================================================================== */
+/* SEÇÃO 4: ÁREA PRINCIPAL E BARRA SUPERIOR */
+/* ===================================================================== */
+
+#main {
+  flex: 1; /* Ocupa todo o espaço restante */
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  position: sticky;
+  top: 18px;
+}
+
+/* Barra superior com busca e filtros */
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  position: sticky;
+  top: 18px;
+}
+
+/* Container da busca */
+.search { 
+  flex: 1;
+}
+
+/* Campo de busca principal */
+.search input {
+  width: 84%;
+  padding: 12px;
+  border-radius: 999px;
+  border: 0;
+  background: #222;
+  color: #fff;
+}
+
+/* ===================================================================== */
+/* SEÇÃO 5: CONTEÚDO E PAINÉIS */
+/* ===================================================================== */
+
+/* Container do conteúdo principal (biblioteca + player) */
+.content { 
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+/* Área da biblioteca de músicas */
+#library {
+  flex: 1;
+  background: var(--panel);
+  padding: 16px;
+  border-radius: 12px;
+  min-height: 520px;
+}
+
+/* Painel do player de música (sticky na lateral direita) */
+#playerPanel {
+  width: 360px;
+  background: linear-gradient(180deg, #151515, #0f0f0f);
+  padding: 16px;
+  border-radius: 12px;
+  position: sticky;
+  top: 50px;  /* Margem superior quando sticky */
+  transition: top 0.3s ease;
+}
+
+/* ===================================================================== */
+/* SEÇÃO 6: LISTA E GRID DE MÚSICAS */
+/* ===================================================================== */
+
+/* Grid responsivo de músicas */
+.song-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+/* Card individual de cada música */
+.card {
+  background: #0e0e0e;
+  padding: 12px;
+  border-radius: 10px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* Metadados da música (título, artista, etc) */
+.meta {
+  flex: 1;
+}
+
+.meta h4 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.meta p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.card button {
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+/* Mensagem de carregamento */
+.loading {
+  color: var(--muted);
+  text-align: center;
+  padding: 20px;
+  font-style: italic;
+}
+
+/* Imagem da capa do álbum/música */
+.cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+/* ===================================================================== */
+/* SEÇÃO 7: FORMULÁRIOS */
+/* ===================================================================== */
+
+forms {
+  position: sticky;
+}
+
+form {
+  margin-top: 8px;
+  position: sticky;
+}
+
+/* Container do formulário */
+.form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;  /* Duas colunas */
+  gap: 8px;
+  background: #101010;
+  padding: 12px;
+  border-radius: 10px;
+  position: sticky;
+}
+
+/* Campos de input e select do formulário */
+.form input,
+.form select {
+  padding: 10px;
+  border-radius: 8px;
+  border: 0;
+  background: #141414;
+  color: #fff;
+  position: sticky;
+}
+
+/* Campo de texto ocupa as duas colunas */
+.form textarea {
+  grid-column: 1/-1;
+  padding: 10px;
+  border-radius: 8px;
+  background: #141414;
+  color: #fff;
+  position: sticky;
+}
+
+/* Área de botões de ação do formulário */
+.form.actions {
+  grid-column: 1/-1;
+  display: flex;
+  gap: 8px;
+  position: sticky;
+}
+
+/* ===================================================================== */
+/* SEÇÃO 8: PLAYER DE MÚSICA CUSTOMIZADO */
+/* ===================================================================== */
+
+#nowPlaying {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Linha principal do player (capa + informações) */
+.np-row {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  background: linear-gradient(90deg, #181818 70%, #121212 100%);
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: 0 2px 12px #0004;
+  margin-bottom: 12px;
+}
+
+/* Capa do álbum ou placeholder com letra */
+.cover {
+  width: 100px;
+  height: 100px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  
+  /* Gradiente animado para placeholders */
+  background: linear-gradient(
+    90deg, 
+    var(--gold) 0%, 
+    #ffffff 50%, 
+    var(--gold) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: content-box;
+  background-clip: content-box;
+  -webkit-text-fill-color:#000000;
+  color:#000000;
+  animation: shimmer-effect 8s linear infinite;
+  text-shadow: 0 0 10px rgba(216, 186, 98, 0.2); 
+}
+
+/* ===================================================================== */
+/* SEÇÃO 9: DROPDOWN DE SUGESTÕES DO ITUNES */
+/* ===================================================================== */
+
+/* Container do dropdown de autocomplete */
+.itunes-dropdown {
+  position: absolute;
+  left: 0;
+  width: 75%;
+  background: #181818;
+  border: 1px solid #222;
+  border-radius: 10px;
+  box-shadow: 0 4px 18px #0006;
+  z-index: 1000;
+  max-height: 220px;
+  overflow-y: auto;
+  margin-top: 4px;
+  padding: 0;
+}
+
+/* Item individual de sugestão */
+.itunes-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid #222;
+  transition: background 0.2s;
+  background: #181818;
+  color: #fff;
+}
+
+.itunes-suggestion:last-child {
+  border-bottom: none;
+}
+
+.itunes-suggestion:hover {
+  background: #232323;
+}
+
+/* Miniatura do álbum na sugestão */
+.itunes-suggestion img {
+  width: 38px;
+  height: 38px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: #222;
+  border: 2px solid var(--gold);
+}
+
+.itunes-suggestion b {
+  color: #fff;
+  font-size: 1em;
+}
+
+.itunes-suggestion span {
+  color: var(--muted);
+  font-size: 0.95em;
+}
+
+/* Botão de adicionar na sugestão */
+.itunes-add-btn {
+  margin-left: auto;
+  background: var(--gold);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.itunes-add-btn:hover {
+  background: #181818;
+  color: var(--gold);
+}
+
+/* ===================================================================== */
+/* SEÇÃO 10: CONTROLES CUSTOMIZADOS DO PLAYER */
+/* ===================================================================== */
+
+/* Container dos controles do player */
+.custom-audio-player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #181818;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-top: 12px;
+  box-shadow: 0 2px 8px #0003;
+}
+
+/* Botão de play/pause */
+.audio-btn {
+  background: var(--gold);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.2em;
+  width: 38px;
+  height: 38px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.audio-btn:hover { 
+  background: #fff;
+  color: var(--gold);
+}
+
+/* Barra de progresso da música */
+#audioSeek {
+  accent-color: var(--gold);
+  height: 4px;
+}
+
+/* ===================================================================== */
+/* SEÇÃO 11: PAINEL DE ARTISTAS */
+/* ===================================================================== */
+
+/* Menu alfabético A-Z */
+#lettersMenu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0 0 16px 0;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  box-sizing: border-box;
+  background: #181818;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+/* Grid de artistas */
+#artistsGrid {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+  min-height: 0;
+  align-items: flex-start;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Título da seção de artistas */
+.artists-title {
+  margin-bottom: 18px;
+  font-size: 1.5em;
+  color: #fff;
+  display: block;
+  width: 100%;
+}
+
+/* Botão de letra do alfabeto */
+.letter-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.95em;
+  font-weight: normal;
+  padding: 4px 8px;
+  margin: 0;
+  cursor: pointer;
+  border-radius: 4px;
+  outline: none;
+  text-decoration: none;
+  box-shadow: none;
+  display: inline;
+  min-width: auto;
+  width: auto;
+  line-height: 1.2;
+  transition: color 0.2s, background 0.2s;
+}
+
+.letter-btn:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.1);
+}
+
+/* Letra selecionada */
+.letter-btn.selected {
+  text-decoration: none;
+  font-weight: bold;
+  color: var(--accent);
+  background: rgba(29, 185, 84, 0.1);
+}
+
+.letter-btn:not(:last-child)::after {
+  display: none;
+}
+
+/* Card de cada artista */
+.artist-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  border-radius: 12px;
+  transition: transform 0.2s, background 0.2s;
+  background: #0e0e0e;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  margin: 0;
+  padding: 16px;
+}
+
+/* Efeito hover no card do artista */
+.artist-card:hover {
+  transform: translateY(-4px);
+  background: #1a1a1a;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+}
+
+/* Foto do artista (circular) */
+.artist-img {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 12px;
+  border: 2px solid var(--accent);
+  background: #222;
+}
+
+/* Layout para duplas (duas fotos lado a lado) */
+.double-img {
+  display: flex;
+  overflow: hidden;
+  width: 80px;
+  height: 80px;
+}
+
+.double-img .half-img {
+  width: 50%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 0;
+}
+
+/* Nome do artista */
+.artist-name {
+  font-size: 1em;
+  color: #fff;
+  text-align: center;
+  font-weight: bold;
+}
+
+/* Botão de voltar (sai da visualização do artista) */
+.back-btn {
+  margin-bottom: 24px;
+  background: #181818;
+  border: none;
+  color: var(--muted);
+  font-size: 1em;
+  cursor: pointer;
+  font-weight: bold;
+  padding: 8px 16px;
+  border-radius: 999px;
+  transition: background 0.2s, color 0.2s;
+}
+
+.back-btn:hover {
+  background: #222;
+  color: #fff;
+}
+
+/* Painel de detalhes do artista */
+.artist-details {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  background: #181818;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+/* Foto grande do artista */
+.artist-img-large {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 3px solid var(--accent);
+  background: #222;
+  object-fit: cover;
+}
+
+/* Nome do artista (versão grande) */
+.artist-details-name {
+  margin: 0 0 12px 0;
+  font-size: 1.8em;
+  color: #fff;
+}
+
+/* Metadados do artista (ouvintes, tags, links) */
+.artist-details-meta {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.artist-details-meta a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.artist-details-meta a:hover {
+  text-decoration: underline;
+}
+
+/* Container da lista de músicas do artista */
+#songsContainer {
+  margin-top: 24px;
+}
+
+/* ===================================================================== */
+/* SEÇÃO 12: RESPONSIVIDADE */
+/* ===================================================================== */
+
+/* Em telas pequenas, esconde sidebar e player */
+@media (max-width:900px) {
+  #sidebar { 
+    display: none; 
+  }
+  #playerPanel { 
+    display: none;  
+  }
+}
+
+/* Ajuste de margem do player quando sticky */
+@media (min-height: 10px) {
+  #playerPanel {
+    top: 50px; 
+  }
+}
+    
+/* ===================================================================== */
+/* SEÇÃO 13: ANIMAÇÕES */
+/* ===================================================================== */
+
+/* Animação de brilho para o logo e elementos com gradiente */
+@keyframes shimmer-effect {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+/* ===================================================================== */
+/* FIM DO ARQUIVO CSS */
+/* ===================================================================== */
