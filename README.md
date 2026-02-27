@@ -1,12 +1,12 @@
 # 🎵 Musify
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Status-Academic%20Project-blue?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" />
-  <img src="https://img.shields.io/badge/Architecture-ES%20Modules-2C8EBB?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/API-iTunes%20%7C%20Wikipedia%20%7C%20Last.fm-8E75B2?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/Chart.js-Visualization-FF6384?style=for-the-badge&logo=chartdotjs&logoColor=white" />
-  <img src="https://img.shields.io/badge/Storage-localStorage-success?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/STATUS-STABLE-22c55e?style=for-the-badge&labelColor=111827" />
+  <img src="https://img.shields.io/badge/JAVASCRIPT-ES6+-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black&labelColor=111827" />
+  <img src="https://img.shields.io/badge/ARCHITECTURE-ES%20MODULES-2C8EBB?style=for-the-badge&labelColor=111827" />
+  <img src="https://img.shields.io/badge/API-iTunes%20%7C%20Wikipedia%20%7C%20Last.fm-8E75B2?style=for-the-badge&labelColor=111827" />
+  <img src="https://img.shields.io/badge/CHART.JS-DATA%20VISUALIZATION-FF6384?style=for-the-badge&logo=chartdotjs&logoColor=white&labelColor=111827" />
+  <img src="https://img.shields.io/badge/STORAGE-localStorage-22c55e?style=for-the-badge&labelColor=111827" />
 </p>
 
 ## Sumário / Summary
